@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <title>广东省</title>
+  <path id="pGD" class="province" d="M30,40 L170,40 L170,160 L30,160 Z" fill="#f8f8f0" stroke="#333" stroke-width="2"/>
+  <text x="100" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">广东省</text>
+</svg>

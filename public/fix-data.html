@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据修复工具 - 蹭饭地图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .edit-form {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-group input:disabled {
+            background: #f5f5f5;
+            color: #999;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .student-list {
+            margin-top: 15px;
+        }
+        .student-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+        .student-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+        .student-item.duplicate {
+            border-color: #ff9800;
+            background: #fff3e0;
+        }
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .student-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .student-info {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>数据修复工具</h1>
+            <p>修复城市名称重复等数据问题</p>
+        </div>
+        
+        <div class="content">
+            <div id="message"></div>
+            
+            <div class="section">
+                <h2>问题检测</h2>
+                <div id="issues">正在检测...</div>
+            </div>
+
+            <div class="section">
+                <h2>所有学生数据</h2>
+                <div id="students" class="student-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allStudents = [];
+
+        function loadData() {
+            allStudents = JSON.parse(localStorage.getItem('meal_map_students') || '[]');
+            detectIssues();
+            renderStudents();
+        }
+
+        function detectIssues() {
+            const issues = [];
+            
+            // 检查城市名称重复
+            const cityByRegion = {};
+            allStudents.forEach(s => {
+                if (!cityByRegion[s.city]) {
+                    cityByRegion[s.city] = [];
+                }
+                cityByRegion[s.city].push(s);
+            });
+
+            Object.entries(cityByRegion).forEach(([city, students]) => {
+                if (students.length > 1) {
+                    const uniqueRegions = new Set(students.map(s => s.region_id));
+                    if (uniqueRegions.size > 1) {
+                        issues.push({
+                            type: 'duplicate_city',
+                            city: city,
+                            students: students
+                        });
+                    }
+                }
+            });
+
+            if (issues.length === 0) {
+                document.getElementById('issues').innerHTML = '<div class="success-message">未发现数据问题</div>';
+            } else {
+                let html = '<div class="error-message">';
+                html += `<strong>发现 ${issues.length} 个问题：</strong><br><br>`;
+                issues.forEach(issue => {
+                    html += `<strong>城市名称重复：${issue.city}</strong><br>`;
+                    html += `出现在以下省/州中：<br>`;
+                    issue.students.forEach(s => {
+                        html += `  - ${s.name} (${s.region_name})<br>`;
+                    });
+                    html += '<br>';
+                });
+                html += '</div>';
+                document.getElementById('issues').innerHTML = html;
+            }
+        }
+
+        function renderStudents() {
+            const container = document.getElementById('students');
+            
+            // 检测重复城市
+            const cityMap = {};
+            allStudents.forEach(s => {
+                if (!cityMap[s.city]) {
+                    cityMap[s.city] = [];
+                }
+                cityMap[s.city].push(s.id);
+            });
+
+            const duplicateCities = new Set();
+            Object.entries(cityMap).forEach(([city, ids]) => {
+                const regions = new Set(allStudents.filter(s => ids.includes(s.id)).map(s => s.region_id));
+                if (regions.size > 1) {
+                    duplicateCities.add(city);
+                }
+            });
+            
+            container.innerHTML = allStudents.map(student => {
+                const isDuplicate = duplicateCities.has(student.city);
+                return `
+                    <div class="student-item ${isDuplicate ? 'duplicate' : ''}" id="student-${student.id}">
+                        <div class="student-header">
+                            <div>
+                                <span class="student-name">${student.name}</span>
+                                ${isDuplicate ? '<span class="badge badge-warning">城市名称重复</span>' : '<span class="badge badge-success">正常</span>'}
+                            </div>
+                        </div>
+                        <div class="student-info">
+                            <strong>国家：</strong>${student.country === 'china' ? '中国' : '美国'}<br>
+                            <strong>省/州：</strong>${student.region_name} (${student.region_id})<br>
+                            <strong>城市：</strong>${student.city}<br>
+                            <strong>创建时间：</strong>${new Date(student.created_at).toLocaleString('zh-CN')}
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-primary" onclick="editStudent('${student.id}')">编辑</button>
+                            <button class="btn btn-danger" onclick="deleteStudent('${student.id}')">删除</button>
+                        </div>
+                        <div id="edit-form-${student.id}"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editStudent(id) {
+            const student = allStudents.find(s => s.id === id);
+            if (!student) return;
+
+            const formContainer = document.getElementById(`edit-form-${id}`);
+            formContainer.innerHTML = `
+                <div class="edit-form">
+                    <h3>编辑学生信息</h3>
+                    <div class="form-group">
+                        <label>姓名</label>
+                        <input type="text" id="name-${id}" value="${student.name}">
+                    </div>
+                    <div class="form-group">
+                        <label>省/州</label>
+                        <input type="text" id="region-${id}" value="${student.region_name}" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>城市</label>
+                        <input type="text" id="city-${id}" value="${student.city}" placeholder="请输入正确的城市名">
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="saveStudent('${id}')">保存</button>
+                        <button class="btn" onclick="cancelEdit('${id}')">取消</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveStudent(id) {
+            const name = document.getElementById(`name-${id}`).value.trim();
+            const city = document.getElementById(`city-${id}`).value.trim();
+
+            if (!name || !city) {
+                alert('姓名和城市不能为空');
+                return;
+            }
+
+            const index = allStudents.findIndex(s => s.id === id);
+            if (index === -1) return;
+
+            allStudents[index].name = name;
+            allStudents[index].city = city;
+            allStudents[index].updated_at = new Date().toISOString();
+
+            localStorage.setItem('meal_map_students', JSON.stringify(allStudents));
+            
+            showMessage('保存成功！', 'success');
+            loadData();
+        }
+
+        function cancelEdit(id) {
+            document.getElementById(`edit-form-${id}`).innerHTML = '';
+        }
+
+        function deleteStudent(id) {
+            if (!confirm('确定要删除这位同学吗？')) return;
+
+            allStudents = allStudents.filter(s => s.id !== id);
+            localStorage.setItem('meal_map_students', JSON.stringify(allStudents));
+            
+            showMessage('删除成功！', 'success');
+            loadData();
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}-message">${text}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        // 页面加载时执行
+        loadData();
+    </script>
+</body>
+</html>

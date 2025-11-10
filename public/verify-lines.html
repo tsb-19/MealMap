@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>连线定位诊断工具</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+        h1 { color: #333; border-bottom: 3px solid #0066FF; padding-bottom: 10px; }
+        .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 4px solid #0066FF; }
+        .error { color: #d32f2f; font-weight: bold; }
+        .success { color: #4caf50; font-weight: bold; }
+        .warning { color: #ff9800; font-weight: bold; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 6px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #0066FF; color: white; }
+        .mismatch { background: #ffebee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>连线定位诊断工具</h1>
+        
+        <div class="section">
+            <h2>SVG Region位置分析</h2>
+            <div id="svgAnalysis"></div>
+        </div>
+
+        <div class="section">
+            <h2>学生数据与Region匹配检查</h2>
+            <div id="dataCheck"></div>
+        </div>
+
+        <div class="section">
+            <h2>连线定位验证</h2>
+            <div id="lineCheck"></div>
+        </div>
+    </div>
+
+    <script>
+        // SVG中各region的实际位置（从Python脚本分析得出）
+        const svgRegionPositions = {
+            '530000': { name: '云南省', x: 46.68, y: 62.99, description: '中部偏下' },
+            '640000': { name: '宁夏回族自治区', x: 52.28, y: 38.21, description: '中部' },
+            '150000': { name: '内蒙古自治区', x: 59.97, y: 21.74, description: '中部偏右上部' }
+        };
+
+        // Region ID映射关系
+        const regionIdMapping = {
+            'CN-530000': '530000',
+            'CN-640000': '640000',
+            'CN-150000': '150000'
+        };
+
+        function analyzeSVGPositions() {
+            const html = `
+                <table>
+                    <tr>
+                        <th>Region ID</th>
+                        <th>省份名称</th>
+                        <th>SVG位置 (X%, Y%)</th>
+                        <th>位置描述</th>
+                    </tr>
+                    ${Object.entries(svgRegionPositions).map(([id, info]) => `
+                        <tr>
+                            <td>${id}</td>
+                            <td>${info.name}</td>
+                            <td>${info.x.toFixed(2)}%, ${info.y.toFixed(2)}%</td>
+                            <td>${info.description}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+                <p><strong>关键发现：</strong></p>
+                <ul>
+                    <li>云南省实际在SVG中的位置是中部偏下，不是西南角</li>
+                    <li>宁夏和内蒙古位置接近（都在中部偏上），容易混淆</li>
+                    <li>这是因为SVG地图做了投影变换，不是标准的经纬度映射</li>
+                </ul>
+            `;
+            document.getElementById('svgAnalysis').innerHTML = html;
+        }
+
+        function checkStudentData() {
+            const students = JSON.parse(localStorage.getItem('meal_map_students') || '[]');
+            
+            if (students.length === 0) {
+                document.getElementById('dataCheck').innerHTML = '<p class="warning">⚠ 未找到学生数据</p>';
+                return;
+            }
+
+            let html = `<p>找到 ${students.length} 位学生</p><table>
+                <tr>
+                    <th>姓名</th>
+                    <th>省份</th>
+                    <th>城市</th>
+                    <th>Region ID</th>
+                    <th>Region ID格式</th>
+                    <th>状态</th>
+                </tr>`;
+            
+            const issues = [];
+            
+            students.forEach(student => {
+                let status = '✓ 正常';
+                let statusClass = '';
+                
+                // 检查region ID格式
+                const hasPrefix = student.region_id.startsWith('CN-');
+                const shortId = hasPrefix ? student.region_id.replace('CN-', '') : student.region_id;
+                
+                // 检查是否在SVG中存在
+                if (!svgRegionPositions[shortId]) {
+                    status = '❌ SVG中未找到';
+                    statusClass = 'mismatch';
+                    issues.push(`${student.name} (${student.region_name}): Region ID ${student.region_id} 在SVG中找不到`);
+                }
+                
+                // 检查城市重复
+                const sameCity = students.filter(s => s.city === student.city && s.region_id !== student.region_id);
+                if (sameCity.length > 0) {
+                    status += ' ⚠ 城市名重复';
+                    statusClass = 'mismatch';
+                    issues.push(`${student.name}: 城市"${student.city}"在多个省份中出现`);
+                }
+                
+                html += `<tr class="${statusClass}">
+                    <td>${student.name}</td>
+                    <td>${student.region_name}</td>
+                    <td>${student.city}</td>
+                    <td>${student.region_id}</td>
+                    <td>${hasPrefix ? '带CN-前缀' : '纯数字'}</td>
+                    <td>${status}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            
+            if (issues.length > 0) {
+                html += '<div class="error"><h3>发现的问题：</h3><ul>';
+                issues.forEach(issue => {
+                    html += `<li>${issue}</li>`;
+                });
+                html += '</ul></div>';
+            } else {
+                html += '<p class="success">✓ 所有学生数据格式正常</p>';
+            }
+            
+            document.getElementById('dataCheck').innerHTML = html;
+        }
+
+        function checkLinePositions() {
+            const students = JSON.parse(localStorage.getItem('meal_map_students') || '[]');
+            
+            if (students.length === 0) {
+                document.getElementById('lineCheck').innerHTML = '<p class="warning">⚠ 未找到学生数据</p>';
+                return;
+            }
+
+            let html = '<table><tr><th>学生</th><th>省份</th><th>Region ID</th><th>连线应指向</th><th>实际SVG位置</th><th>验证</th></tr>';
+            
+            students.forEach(student => {
+                const regionId = student.region_id;
+                const shortId = regionId.startsWith('CN-') ? regionId.replace('CN-', '') : regionId;
+                const svgPos = svgRegionPositions[shortId];
+                
+                let verification = '';
+                let verifyClass = '';
+                
+                if (!svgPos) {
+                    verification = '❌ SVG中找不到此region';
+                    verifyClass = 'mismatch';
+                } else {
+                    verification = `✓ 连线应指向 ${svgPos.description}`;
+                    verifyClass = '';
+                    
+                    // 特殊检查
+                    if (shortId === '640000' && svgPos.x > 58) {
+                        verification += '<br><span class="warning">⚠ 位置接近内蒙古</span>';
+                    }
+                }
+                
+                html += `<tr class="${verifyClass}">
+                    <td>${student.name}</td>
+                    <td>${student.region_name}</td>
+                    <td>${regionId}</td>
+                    <td>${student.region_name}</td>
+                    <td>${svgPos ? `${svgPos.x.toFixed(2)}%, ${svgPos.y.toFixed(2)}% (${svgPos.description})` : 'N/A'}</td>
+                    <td>${verification}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            
+            html += `
+                <h3>如何判断连线是否正确：</h3>
+                <ol>
+                    <li>打开主应用: <a href="/" target="_blank">点击这里</a></li>
+                    <li>打开浏览器控制台 (F12)</li>
+                    <li>查找日志: "✓ Rendering card for XXX at position: XX.XX%, XX.XX%"</li>
+                    <li>对比上表中的"实际SVG位置"</li>
+                    <li>如果位置坐标匹配，说明计算正确；如果不匹配，说明代码有bug</li>
+                </ol>
+                
+                <h3>预期结果：</h3>
+                <ul>
+                    <li><strong>云南省</strong>: 连线应指向地图中部偏下位置 (约46%, 63%)</li>
+                    <li><strong>宁夏</strong>: 连线应指向地图中部位置 (约52%, 38%)</li>
+                    <li><strong>内蒙古</strong>: 连线应指向地图中部偏右上部 (约60%, 22%)</li>
+                </ul>
+            `;
+            
+            document.getElementById('lineCheck').innerHTML = html;
+        }
+
+        // 执行所有检查
+        analyzeSVGPositions();
+        checkStudentData();
+        checkLinePositions();
+    </script>
+</body>
+</html>

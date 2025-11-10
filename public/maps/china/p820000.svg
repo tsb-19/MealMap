@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <title>澳门特别行政区</title>
+  <defs>
+    <style>
+      .region-path {
+        fill: #e6f3ff;
+        stroke: #2563eb;
+        stroke-width: 1.5;
+        stroke-linejoin: round;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .region-path:hover {
+        fill: #bfdbfe;
+        stroke: #1d4ed8;
+        stroke-width: 2;
+      }
+      .region-label {
+        fill: #1e40af;
+        font-family: Arial, sans-serif;
+        font-size: 24px;
+        font-weight: bold;
+        pointer-events: none;
+      }
+    </style>
+  </defs>
+  
+  <g id="820000">
+    <path id="820000-land" 
+          class="region-path"
+          data-region-id="820000"
+          data-region-name="澳门特别行政区"
+          d="M 495.94 366.06 L 496.45 365.80 L 496.16 365.15 L 495.98 364.97 L 495.77 365.00 L 495.73 365.37 L 495.94 365.69 L 495.94 366.06 Z M 496.27 365.09 L 496.16 365.09 L 496.16 365.15 L 496.27 365.09 Z">
+      <title>澳门特别行政区</title>
+    </path>
+  </g>
+</svg>
