@@ -18,11 +18,10 @@ const getCardPositionsFromStorage = (country: 'china' | 'usa'): Record<string, C
     const key = `${STORAGE_PREFIX}-${country}-card-positions`
     const stored = localStorage.getItem(key)
     if (stored) {
-      console.log(`📦 从localStorage读取卡片位置: ${key}`)
       return JSON.parse(stored)
     }
   } catch (error) {
-    console.warn('读取localStorage失败:', error)
+    console.warn('Failed to read from localStorage:', error)
   }
   return {}
 }
@@ -31,9 +30,8 @@ const saveCardPositionsToStorage = (country: 'china' | 'usa', positions: Record<
   try {
     const key = `${STORAGE_PREFIX}-${country}-card-positions`
     localStorage.setItem(key, JSON.stringify(positions))
-    console.log(`💾 保存卡片位置到localStorage: ${key}`, positions)
   } catch (error) {
-    console.warn('保存localStorage失败:', error)
+    console.warn('Failed to save to localStorage:', error)
   }
 }
 
@@ -76,30 +74,9 @@ export default function InteractiveMap({
   onShowList,
   colorChanged,
 }: InteractiveMapProps) {
-  console.log('=== InteractiveMap Component Rendered ===')
-  console.log('Props received:', {
-    country,
-    regionsCount: regions?.length || 0,
-    studentsCount: students?.length || 0,
-    colorChanged
-  })
-  
-  // 简单的useEffect测试
-  console.log('🎯 About to define useEffect...')
-  
   // 加载地图
   useEffect(() => {
-    console.log('🚀 === InteractiveMap useEffect START - NO CONDITIONS ===')
-    console.log('country:', country)
-    console.log('regions:', regions?.length || 0)
-    console.log('regions object:', regions)
-    
-    console.log('🔍 Checking conditions...')
-    console.log('!regions:', !regions)
-    console.log('regions.length === 0:', regions?.length === 0)
-    
     if (!regions || regions.length === 0) {
-      console.log('⚠️ Early return - no regions data')
       setSvgContent(`
         <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
           <text x="400" y="300" text-anchor="middle" font-size="18" fill="#666">
@@ -110,8 +87,6 @@ export default function InteractiveMap({
       setLoading(false)
       return
     }
-    
-    console.log('✅ Proceeding with map loading...')
 
     setRegionPositions({})
     setSvgContent('')
@@ -124,13 +99,9 @@ export default function InteractiveMap({
 
   // 监听国家变化，重新从localStorage读取卡片位置
   useEffect(() => {
-    console.log(`🌍 国家切换到: ${country}，重新读取localStorage中的卡片位置`)
     const storedPositions = getCardPositionsFromStorage(country)
     setCardPositions(storedPositions)
-    console.log('📦 从localStorage读取的卡片位置:', storedPositions)
   }, [country])
-  
-  console.log('🎯 useEffect defined successfully')
   
   const [svgContent, setSvgContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -229,91 +200,9 @@ export default function InteractiveMap({
 
   // 为有学生的省份添加填充颜色 - 支持任意颜色值
   const addRegionFillColors = (svgText: string, studentsByRegion: Record<string, LocalStudent[]>, regions: Region[]): string => {
-    console.log('=== addRegionFillColors START ===')
-    console.log('addRegionFillColors called with:', {
-      studentsByRegionKeys: Object.keys(studentsByRegion),
-      studentsByRegionContent: studentsByRegion,
-      regionsCount: regions.length,
-      svgTextLength: svgText.length,
-      svgTextSample: svgText.substring(0, 200)
-    })
-    
-    // 1. 打印所有studentsByRegion的键（region IDs）
-    console.log('🔍 所有学生按地区分组的键（region IDs）:')
-    Object.keys(studentsByRegion).forEach((key, index) => {
-      console.log(`  ${index + 1}. ${key}`)
-    })
-    
-    // 2. 对于美国地图，打印每个regionId及其转换后的svgId
-    if (country === 'usa') {
-      console.log('🇺🇸 美国地图区域ID转换调试:')
-      Object.keys(studentsByRegion).forEach((regionId) => {
-        let svgId = regionId
-        
-        // 处理美国州（US-前缀）
-        if (regionId.startsWith('US-')) {
-          svgId = regionId
-        } else {
-          // 如果没有US-前缀，添加它
-          svgId = `US-${regionId}`
-        }
-        
-        // 美国地图使用FIPS代码，转换为US-XX格式
-        if (svgId.startsWith('US-') && svgId.length === 5) {
-          // 确保是两位数字格式
-          const fipsCode = svgId.replace('US-', '')
-          if (fipsCode.length === 1) {
-            svgId = `US-0${fipsCode}`
-          }
-        }
-        
-        console.log(`  ${regionId} -> ${svgId}`)
-      })
-    }
-    
-    // 3. 在SVG text中搜索所有包含"US-"的data-region-id属性，打印前10个
-    if (country === 'usa') {
-      console.log('🔍 搜索SVG中包含"US-"的data-region-id属性（前10个）:')
-      const usRegionRegex = /data-region-id=["'](US-[^"']+)["']/gi
-      let match
-      let count = 0
-      const foundRegions: string[] = []
-      
-      while ((match = usRegionRegex.exec(svgText)) !== null && count < 10) {
-        foundRegions.push(match[1])
-        console.log(`  ${count + 1}. ${match[1]}`)
-        count++
-      }
-      
-      if (count === 0) {
-        console.log('  ❌ 未找到任何包含"US-"的data-region-id属性')
-        // 尝试搜索其他可能的格式
-        console.log('  🔍 尝试搜索id属性中的US-格式:')
-        const idRegex = /id=["'](US-[^"']+)["']/gi
-        let idMatch
-        let idCount = 0
-        while ((idMatch = idRegex.exec(svgText)) !== null && idCount < 5) {
-          console.log(`    ${idCount + 1}. id="${idMatch[1]}"`)
-          idCount++
-        }
-        
-        if (idCount === 0) {
-          console.log('  ❌ 也没有找到id属性中的US-格式')
-          console.log('  🔍 检查SVG文件是否正确加载...')
-          console.log('  SVG文件长度:', svgText.length)
-          console.log('  SVG文件开头:', svgText.substring(0, 500))
-        }
-      } else {
-        console.log(`  ✅ 找到 ${count} 个包含"US-"的data-region-id属性`)
-        console.log('  📋 完整的US-区域列表:', foundRegions)
-      }
-    }
-    
     let modifiedSvg = svgText
-    let totalMatches = 0
     
     Object.entries(studentsByRegion).forEach(([regionId, regionStudents]) => {
-      console.log(`Processing region ${regionId} with ${regionStudents.length} students:`, regionStudents)
       const region = regions.find(r => r.id === regionId)
       if (!region) return
       
@@ -358,58 +247,23 @@ export default function InteractiveMap({
         
         if (fipsCode) {
           svgId = `US-${fipsCode}`
-          console.log(`🇺🇸 转换州ID: ${regionId} -> ${svgId} (FIPS: ${fipsCode})`)
         } else {
           svgId = regionId
-          console.log(`🇺🇸 未找到FIPS映射，使用原始ID: ${regionId} -> ${svgId}`)
         }
       }
       
-      console.log(`Applying color ${fillColor} to region ${regionId} (SVG ID: ${svgId})`)
-      
       // 处理data-region-id属性 - 支持多行SVG路径
-      console.log(`Creating regex for SVG ID: ${svgId}`)
       const escapedSvgId = svgId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      console.log(`Escaped SVG ID: ${escapedSvgId}`)
       
       // 使用更宽松的正则表达式，支持多行和换行
       const dataRegionRegex = new RegExp(`<path[^>]*data-region-id=["']${escapedSvgId}["'][^>]*>`, 'gi')
-      console.log(`Regex pattern: ${dataRegionRegex}`)
-      
-      // 详细调试：输出SVG文本中包含该ID的部分
-      const svgIdIndex = modifiedSvg.indexOf(svgId)
-      if (svgIdIndex !== -1) {
-        console.log(`Found SVG ID "${svgId}" in SVG text at position ${svgIdIndex}`)
-        console.log(`SVG context around ${svgId}:`, modifiedSvg.substring(svgIdIndex - 100, svgIdIndex + 200))
-      } else {
-        console.log(`❌ SVG ID "${svgId}" NOT FOUND in SVG text`)
-        // 搜索可能的变体
-        const variants = [
-          `data-region-id="${svgId}"`,
-          `data-region-id='${svgId}'`,
-          `id="${svgId}"`,
-          `id='${svgId}'`,
-          svgId
-        ]
-        console.log(`Searching for variants:`, variants)
-        variants.forEach(variant => {
-          const index = modifiedSvg.indexOf(variant)
-          if (index !== -1) {
-            console.log(`Found variant "${variant}" at position ${index}`)
-          }
-        })
-      }
       
       let dataRegionMatches = 0
-      console.log(`Testing regex against SVG text...`)
       modifiedSvg = modifiedSvg.replace(dataRegionRegex, (match) => {
         dataRegionMatches++
-        totalMatches++
-        console.log(`✓ MATCHED data-region-id path for ${svgId}:`, match.substring(0, 150))
         
         // 检查是否已经有style属性
         if (match.includes('style=')) {
-          console.log(`  Updating existing style attribute with ${fillColor}`)
           // 更新现有的style属性，添加或更新fill
           return match.replace(/style=["'][^"']*["']/gi, (styleMatch) => {
             const styleContent = styleMatch.match(/style=["']([^"']*)["']/)[1]
@@ -423,7 +277,6 @@ export default function InteractiveMap({
             }
           })
         } else {
-          console.log(`  Adding new style attribute: ${fillColor}`)
           // 在路径结束前添加style属性
           if (match.trim().endsWith('/>')) {
             // 自闭合标签：/> -> style="fill:color"/>
@@ -435,21 +288,15 @@ export default function InteractiveMap({
         }
       })
       
-      console.log(`Data-region-id matches for ${svgId}: ${dataRegionMatches}`)
-      
       // 如果data-region-id没有匹配到，尝试匹配id属性
       if (dataRegionMatches === 0) {
-        console.log(`No data-region-id matches, trying id attribute for ${svgId}`)
         const pathIdRegex = new RegExp(`<path[^>]*id=["']${svgId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>`, 'gi')
         let idMatches = 0
         modifiedSvg = modifiedSvg.replace(pathIdRegex, (match) => {
           idMatches++
-          totalMatches++
-          console.log(`✓ MATCHED id path for ${svgId}:`, match.substring(0, 150))
           
           // 检查是否已经有style属性
           if (match.includes('style=')) {
-            console.log(`  Updating existing style attribute with ${fillColor}`)
             // 更新现有的style属性，添加或更新fill
             return match.replace(/style=["'][^"']*["']/gi, (styleMatch) => {
               const styleContent = styleMatch.match(/style=["']([^"']*)["']/)[1]
@@ -463,7 +310,6 @@ export default function InteractiveMap({
               }
             })
           } else {
-            console.log(`  Adding new style attribute: ${fillColor}`)
             // 在路径结束前添加style属性
             if (match.trim().endsWith('/>')) {
               // 自闭合标签：/> -> style="fill:color"/>
@@ -476,19 +322,10 @@ export default function InteractiveMap({
         })
         
         if (idMatches === 0) {
-          console.warn(`❌ No SVG path found for region ${regionId} (SVG ID: ${svgId})`)
-          console.log(`SVG text sample around ${svgId}:`, modifiedSvg.substring(Math.max(0, modifiedSvg.indexOf(svgId) - 100), modifiedSvg.indexOf(svgId) + 100))
-        } else {
-          console.log(`Id matches for ${svgId}: ${idMatches}`)
+          console.warn(`No SVG path found for region ${regionId} (SVG ID: ${svgId})`)
         }
-      } else {
-        console.log(`✓ Skipping id check - already found ${dataRegionMatches} data-region-id matches`)
       }
     })
-    
-    console.log('=== addRegionFillColors END ===')
-    console.log('Total matches found:', totalMatches)
-    console.log('Modified SVG sample:', modifiedSvg.substring(0, 200))
     
     return modifiedSvg
   }
@@ -545,14 +382,6 @@ export default function InteractiveMap({
   }
 
   const loadCombinedSVG = async () => {
-    console.log('=== loadCombinedSVG START ===')
-    console.log('loadCombinedSVG called with students:', students.length, 'regions:', regions.length)
-    console.log('Current state:', {
-      students: students,
-      studentsByRegion: studentsByRegion,
-      regions: regions.length,
-      country: country
-    })
     try {
       const fileName = country === 'china' ? 'china-combined.svg' : 'usa-combined.svg'
       const filePath = `/maps/${fileName}`
@@ -662,7 +491,6 @@ export default function InteractiveMap({
                   width: boxWidth,
                   height: boxHeight
                 }
-                console.log(`Region ${region.id} (${variantId}): Path center at (${finalX.toFixed(1)}, ${finalY.toFixed(1)}) -> (${centerPoint.x.toFixed(2)}%, ${centerPoint.y.toFixed(2)}%), box: ${boxWidth.toFixed(2)}% x ${boxHeight.toFixed(2)}%`)
                 break
               }
             }
@@ -697,8 +525,6 @@ export default function InteractiveMap({
         }
         
         positions[region.id] = centerPoint
-        const source = centerPoint && centerPoint !== null ? 'from SVG' : 'from geo'
-        console.log(`✅ Region ${region.id} center position SET:`, positions[region.id], source)
       })
       
       setRegionPositions(positions)
@@ -706,29 +532,13 @@ export default function InteractiveMap({
       // 序列化SVG并应用颜色
       const serializer = new XMLSerializer()
       let finalSvgText = serializer.serializeToString(svgElement)
-      console.log('=== Before addRegionFillColors ===')
-      console.log('studentsByRegion:', studentsByRegion)
-      console.log('regions:', regions.length)
-      console.log('SVG text sample:', finalSvgText.substring(0, 500))
-      
-      console.log('Calling addRegionFillColors with parameters:', {
-        svgTextLength: finalSvgText.length,
-        studentsByRegionKeys: Object.keys(studentsByRegion),
-        regionsCount: regions.length
-      })
       
       finalSvgText = addRegionFillColors(finalSvgText, studentsByRegion, regions)
       
-      console.log('=== After addRegionFillColors ===')
-      console.log('Final SVG sample:', finalSvgText.substring(0, 500))
-      
       setSvgContent(finalSvgText)
       // 使用原始SVG的viewBox尺寸，确保坐标系统一致
-      console.log(`📐 Setting svgViewBox: ${originalViewBoxWidth} x ${originalViewBoxHeight}`)
       setSvgViewBox({ width: originalViewBoxWidth, height: originalViewBoxHeight })
       setLoading(false)
-      
-      console.log('=== loadCombinedSVG END ===')
       
     } catch (error) {
       console.error('Error loading SVG:', error)
@@ -744,12 +554,10 @@ export default function InteractiveMap({
 
   // 强制重新渲染函数 - 移除依赖避免无限循环
   const triggerForceUpdate = useCallback(() => {
-    console.log('Triggering force update...')
     setForceUpdate(prev => prev + 1)
     // 立即重新加载地图以应用新的颜色设置
     setTimeout(() => {
       if (regions.length > 0) {
-        console.log('Reloading map due to force update...')
         loadCombinedSVG()
       }
     }, 50)
@@ -771,12 +579,10 @@ export default function InteractiveMap({
       
       if (isOpen !== devtoolsOpen) {
         devtoolsOpen = isOpen
-        console.log('DevTools state changed:', devtoolsOpen ? 'OPENED' : 'CLOSED')
         
         // 延迟触发重新计算，确保布局稳定
         if (resizeTimeout) clearTimeout(resizeTimeout)
         resizeTimeout = setTimeout(() => {
-          console.log('Triggering force update due to DevTools change')
           triggerForceUpdate()
         }, 100)
       }
@@ -793,7 +599,6 @@ export default function InteractiveMap({
     // 监听键盘事件（F12键）
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F12') {
-        console.log('F12 key pressed')
         if (resizeTimeout) clearTimeout(resizeTimeout)
         resizeTimeout = setTimeout(() => {
           detectDevTools()
@@ -820,14 +625,11 @@ export default function InteractiveMap({
     document.addEventListener('visibilitychange', handleFocus)
 
     // ResizeObserver作为主要检测
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        console.log('Container resized:', entry.contentRect.width, 'x', entry.contentRect.height)
-        if (resizeTimeout) clearTimeout(resizeTimeout)
-        resizeTimeout = setTimeout(() => {
-          detectDevTools()
-        }, 50)
-      }
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeTimeout) clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(() => {
+        detectDevTools()
+      }, 50)
     })
 
     resizeObserver.observe(mapContainerRef.current)
@@ -845,11 +647,6 @@ export default function InteractiveMap({
   // 监听国家变化和数据变化，触发地图重新加载
   useEffect(() => {
     if (students.length >= 0 && regions.length > 0) {
-      console.log('Data or country changed, reloading SVG...', {
-        students: students.length,
-        regions: regions.length,
-        country: country
-      })
       setTimeout(() => {
         loadCombinedSVG()
       }, 100)
@@ -859,7 +656,6 @@ export default function InteractiveMap({
   // 监听外部颜色变化触发器
   useEffect(() => {
     if (colorChanged !== undefined && colorChanged > 0 && svgContent) {
-      console.log('External color changed, reloading map...', colorChanged)
       setTimeout(() => {
         loadCombinedSVG()
       }, 100)
@@ -869,7 +665,6 @@ export default function InteractiveMap({
   // 简化的forceUpdate监听 - 只在有SVG内容时触发
   useEffect(() => {
     if (forceUpdate > 0 && regions.length > 0 && svgContent) {
-      console.log('Force update triggered, reloading map...')
       setTimeout(() => {
         loadCombinedSVG()
       }, 50)
@@ -1241,9 +1036,6 @@ export default function InteractiveMap({
             try {
               const result = geometryElement.isPointInFill(svgPoint)
               // 添加详细日志以便调试
-              if (regionId === 'CN-150000') {
-                console.log(`🔍 isPointInFill check for ${regionId}: point=(${x.toFixed(1)}, ${y.toFixed(1)}), result=${result}, viewBox=(${svgViewBoxWidth}, ${svgViewBoxHeight})`)
-              }
               return result
             } catch (err) {
               console.warn(`isPointInFill failed for region ${regionId}:`, err)
@@ -1346,13 +1138,9 @@ export default function InteractiveMap({
             const finalCheck = isInsideFill(finalPointX, finalPointY)
             const finalPercentX = (finalPointX / svgViewBoxWidth) * 100
             const finalPercentY = (finalPointY / svgViewBoxHeight) * 100
-            console.log(
-              `📍 Region ${regionId}: endpoint=(${finalPercentX.toFixed(2)}%, ${finalPercentY.toFixed(2)}%), inFill=${finalCheck}, regionPos=(${regionPercentX.toFixed(2)}%, ${regionPercentY.toFixed(2)}%), center=(${((regionCenterX / svgViewBoxWidth) * 100).toFixed(2)}%, ${((regionCenterY / svgViewBoxHeight) * 100).toFixed(2)}%), SVG coords=(${finalPointX.toFixed(1)}, ${finalPointY.toFixed(1)})`
-            )
 
             // 如果最终检查失败，使用区域中心作为回退
             if (!finalCheck) {
-              console.warn(`⚠️ Region ${regionId}: Calculated endpoint not in fill, using region center`)
               lineEndX = regionPercentX
               lineEndY = regionPercentY
             } else {
@@ -1621,15 +1409,12 @@ export default function InteractiveMap({
     
     const tryCalculate = () => {
       if (checkAndCalculate()) {
-        console.log('✅ All DOM elements ready, calling calculateLineEndpoints')
         calculateLineEndpoints()
       } else {
         retryCount++
         if (retryCount < maxRetries) {
-          console.log(`⏳ Waiting for DOM elements (attempt ${retryCount}/${maxRetries})...`)
           setTimeout(tryCalculate, retryDelay)
         } else {
-          console.warn('⚠️ Max retries reached, calling calculateLineEndpoints anyway')
           calculateLineEndpoints()
         }
       }
@@ -1643,77 +1428,6 @@ export default function InteractiveMap({
 
   // 检查连线 SVG 容器的 DOM 状态
   useEffect(() => {
-    const checkLineSvgState = () => {
-      if (lineSvgContainerRef.current) {
-        const containerRect = lineSvgContainerRef.current.getBoundingClientRect()
-        const containerStyle = window.getComputedStyle(lineSvgContainerRef.current)
-        const lineSvg = lineSvgContainerRef.current.querySelector('svg')
-        
-        console.log('🔍 Line SVG Container DOM State:', {
-          exists: !!lineSvgContainerRef.current,
-          containerRect: {
-            width: containerRect.width,
-            height: containerRect.height,
-            top: containerRect.top,
-            left: containerRect.left,
-            right: containerRect.right,
-            bottom: containerRect.bottom
-          },
-          containerStyle: {
-            display: containerStyle.display,
-            visibility: containerStyle.visibility,
-            opacity: containerStyle.opacity,
-            zIndex: containerStyle.zIndex,
-            position: containerStyle.position,
-            transform: containerStyle.transform
-          },
-          svgExists: !!lineSvg,
-          svgElement: lineSvg ? {
-            viewBox: lineSvg.getAttribute('viewBox'),
-            width: lineSvg.getAttribute('width'),
-            height: lineSvg.getAttribute('height'),
-            preserveAspectRatio: lineSvg.getAttribute('preserveAspectRatio'),
-            clientWidth: lineSvg.clientWidth,
-            clientHeight: lineSvg.clientHeight,
-            boundingClientRect: lineSvg.getBoundingClientRect()
-          } : null,
-          lineCount: lineSvg ? lineSvg.querySelectorAll('line').length : 0,
-          circleCount: lineSvg ? lineSvg.querySelectorAll('circle').length : 0,
-          gCount: lineSvg ? lineSvg.querySelectorAll('g').length : 0
-        })
-        
-        if (lineSvg) {
-          const lines = lineSvg.querySelectorAll('line')
-          console.log(`🔍 Line SVG contains ${lines.length} line elements:`)
-          lines.forEach((line, index) => {
-            const computedStyle = window.getComputedStyle(line)
-            console.log(`  Line ${index + 1}:`, {
-              x1: line.getAttribute('x1'),
-              y1: line.getAttribute('y1'),
-              x2: line.getAttribute('x2'),
-              y2: line.getAttribute('y2'),
-              stroke: line.getAttribute('stroke'),
-              strokeWidth: line.getAttribute('stroke-width'),
-              opacity: line.getAttribute('opacity'),
-              computedStyle: {
-                display: computedStyle.display,
-                visibility: computedStyle.visibility,
-                opacity: computedStyle.opacity,
-                stroke: computedStyle.stroke,
-                strokeWidth: computedStyle.strokeWidth
-              },
-              boundingClientRect: line.getBoundingClientRect()
-            })
-          })
-        }
-      } else {
-        console.warn('⚠️ Line SVG container ref is null')
-      }
-    }
-    
-    // 延迟检查，确保DOM已更新
-    const timer = setTimeout(checkLineSvgState, 100)
-    return () => clearTimeout(timer)
   }, [studentsByRegion, lineEndpoints, scale, svgViewBox])
 
   // 缩放控制
@@ -1730,7 +1444,6 @@ export default function InteractiveMap({
     }
     
     if (exporting) {
-      console.log('Export already in progress, skipping...')
       return
     }
     
@@ -1738,13 +1451,11 @@ export default function InteractiveMap({
     
     try {
       setExporting(true)
-      console.log('Starting export process...')
       
       // 动态导入html2canvas
       let html2canvasModule
       try {
         html2canvasModule = await import('html2canvas')
-        console.log('html2canvas imported successfully')
       } catch (importError) {
         console.error('Failed to import html2canvas:', importError)
         throw new Error('Failed to import html2canvas library')
@@ -1941,13 +1652,8 @@ export default function InteractiveMap({
       exportContainer.appendChild(clonedContent)
       document.body.appendChild(exportContainer)
       
-      console.log('Export container created and appended to DOM')
-      console.log('Fixed text overflow issues for student cards')
-      
       // 等待DOM稳定
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      console.log('Starting html2canvas conversion...')
       
       // 使用html2canvas导出 - 提高清晰度
       const canvas = await html2canvasModule.default(exportContainer, {
@@ -2126,9 +1832,6 @@ export default function InteractiveMap({
       // 转换为dataUrl
       const dataUrl = canvas.toDataURL('image/png', 1.0) // 最高质量
       
-      console.log('html2canvas conversion successful')
-      console.log('Canvas size:', canvas.width, 'x', canvas.height)
-      
       // 下载图片
       const link = document.createElement('a')
       const timestamp = new Date().toISOString().split('T')[0]
@@ -2213,23 +1916,6 @@ export default function InteractiveMap({
         >
           {(() => {
             try {
-              console.log('🎨 Line SVG rendering IIFE started')
-              // 调试：检查连线 SVG 容器的内层 div 的样式
-              if (lineSvgContainerRef.current) {
-                const innerDiv = lineSvgContainerRef.current.querySelector('div')
-                if (innerDiv) {
-                  const innerDivStyle = window.getComputedStyle(innerDiv)
-                  const innerDivRect = innerDiv.getBoundingClientRect()
-                  console.log('🔍 Line SVG inner div state:', {
-                    transform: innerDivStyle.transform,
-                    width: innerDivRect.width,
-                    height: innerDivRect.height,
-                    top: innerDivRect.top,
-                    left: innerDivRect.left,
-                    scale: scale
-                  })
-                }
-              }
               // 从 DOM 获取地图 SVG 的实际 viewBox 和 preserveAspectRatio
               // 优先使用 svgViewBox state，因为它应该已经包含了正确的值
               let actualViewBoxWidth = svgViewBox.width || 1200
@@ -2254,47 +1940,6 @@ export default function InteractiveMap({
                 }
               }
               
-              // 调试日志
-              const studentsByRegionEntries = Object.entries(studentsByRegion)
-              console.log('🔗 Rendering line SVG:', {
-                studentsByRegionCount: studentsByRegionEntries.length,
-                lineEndpointsCount: Object.keys(lineEndpoints).length,
-                viewBox: `${actualViewBoxWidth} x ${actualViewBoxHeight}`,
-                preserveAspectRatio: actualPreserveAspectRatio,
-                studentsByRegionKeys: studentsByRegionEntries.map(([id]) => id),
-                lineEndpointsKeys: Object.keys(lineEndpoints),
-                scale: scale,
-                hasLineSvgContainerRef: !!lineSvgContainerRef.current
-              })
-              
-              // 添加 SVG 元素的实际样式和位置调试信息
-              if (lineSvgRef.current) {
-                const svgStyle = window.getComputedStyle(lineSvgRef.current)
-                const svgRect = lineSvgRef.current.getBoundingClientRect()
-                console.log('🔍 Line SVG element actual state:', {
-                  width: svgRect.width,
-                  height: svgRect.height,
-                  top: svgRect.top,
-                  left: svgRect.left,
-                  right: svgRect.right,
-                  bottom: svgRect.bottom,
-                  computedStyle: {
-                    position: svgStyle.position,
-                    display: svgStyle.display,
-                    visibility: svgStyle.visibility,
-                    opacity: svgStyle.opacity,
-                    zIndex: svgStyle.zIndex,
-                    transform: svgStyle.transform,
-                    width: svgStyle.width,
-                    height: svgStyle.height
-                  },
-                  viewBox: lineSvgRef.current.getAttribute('viewBox'),
-                  preserveAspectRatio: lineSvgRef.current.getAttribute('preserveAspectRatio'),
-                  clientWidth: lineSvgRef.current.clientWidth,
-                  clientHeight: lineSvgRef.current.clientHeight
-                })
-              }
-              
               return (
                 <svg
                   ref={lineSvgRef}
@@ -2308,18 +1953,14 @@ export default function InteractiveMap({
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   {(() => {
-                    let renderedCount = 0
-                    let skippedCount = 0
-                    const elements = studentsByRegionEntries.map(([regionId, regionStudents]) => {
+                    const elements = Object.entries(studentsByRegion).map(([regionId, regionStudents]) => {
                     const region = regions.find(r => r.id === regionId)
                     if (!region) {
-                      skippedCount++
                       return null
                     }
 
                     const position = regionPositions[regionId]
                     if (!position) {
-                      skippedCount++
                       return null
                     }
 
@@ -2374,203 +2015,8 @@ export default function InteractiveMap({
                   const dyToEndpoint = lineEndYPercent - finalY
                   const distanceToEndpoint = Math.sqrt(dxToEndpoint * dxToEndpoint + dyToEndpoint * dyToEndpoint)
                   
-                  // 找到卡片边缘上最近的点（从卡片中心向终点方向的射线与卡片边界的交点）
-                  let cardEdgeX = finalX
-                  let cardEdgeY = finalY
-                  
-                  if (distanceToEndpoint > 0.001) { // 避免除零，使用小的阈值
-                    const normalizedDx = dxToEndpoint / distanceToEndpoint
-                    const normalizedDy = dyToEndpoint / distanceToEndpoint
-                    
-                    // 计算射线与卡片四条边的交点参数 t
-                    // 射线方程: (x, y) = (finalX, finalY) + t * (normalizedDx, normalizedDy)
-                    const validTs: Array<{ t: number; edge: 'left' | 'right' | 'top' | 'bottom' }> = []
-                    
-                    // 与左边界 (x = cardLeft) 的交点
-                    if (Math.abs(normalizedDx) > 0.001) {
-                      const tLeft = (cardLeft - finalX) / normalizedDx
-                      if (tLeft > 0) {
-                        const yAtLeft = finalY + normalizedDy * tLeft
-                        // 检查交点是否在卡片的上边界和下边界之间（允许小的容差）
-                        if (yAtLeft >= cardTop - 0.01 && yAtLeft <= cardBottom + 0.01) {
-                          validTs.push({ t: tLeft, edge: 'left' })
-                        }
-                      }
-                    }
-                    
-                    // 与右边界 (x = cardRight) 的交点
-                    if (Math.abs(normalizedDx) > 0.001) {
-                      const tRight = (cardRight - finalX) / normalizedDx
-                      if (tRight > 0) {
-                        const yAtRight = finalY + normalizedDy * tRight
-                        // 检查交点是否在卡片的上边界和下边界之间（允许小的容差）
-                        if (yAtRight >= cardTop - 0.01 && yAtRight <= cardBottom + 0.01) {
-                          validTs.push({ t: tRight, edge: 'right' })
-                        }
-                      }
-                    }
-                    
-                    // 与上边界 (y = cardTop) 的交点
-                    if (Math.abs(normalizedDy) > 0.001) {
-                      const tTop = (cardTop - finalY) / normalizedDy
-                      if (tTop > 0) {
-                        const xAtTop = finalX + normalizedDx * tTop
-                        // 检查交点是否在卡片的左边界和右边界之间（允许小的容差）
-                        if (xAtTop >= cardLeft - 0.01 && xAtTop <= cardRight + 0.01) {
-                          validTs.push({ t: tTop, edge: 'top' })
-                        }
-                      }
-                    }
-                    
-                    // 与下边界 (y = cardBottom) 的交点
-                    if (Math.abs(normalizedDy) > 0.001) {
-                      const tBottom = (cardBottom - finalY) / normalizedDy
-                      if (tBottom > 0) {
-                        const xAtBottom = finalX + normalizedDx * tBottom
-                        // 检查交点是否在卡片的左边界和右边界之间（允许小的容差）
-                        if (xAtBottom >= cardLeft - 0.01 && xAtBottom <= cardRight + 0.01) {
-                          validTs.push({ t: tBottom, edge: 'bottom' })
-                        }
-                      }
-                    }
-                    
-                    // 选择最小的 t（最近的交点，即卡片边缘上离中心最近的点）
-                    if (validTs.length > 0) {
-                      const minIntersection = validTs.reduce((min, curr) => curr.t < min.t ? curr : min)
-                      const minT = minIntersection.t
-                      cardEdgeX = finalX + normalizedDx * minT
-                      cardEdgeY = finalY + normalizedDy * minT
-                      
-                      // 确保边缘点在卡片边界上（精确对齐）
-                      if (minIntersection.edge === 'left') {
-                        cardEdgeX = cardLeft
-                        cardEdgeY = Math.max(cardTop, Math.min(cardBottom, cardEdgeY))
-                      } else if (minIntersection.edge === 'right') {
-                        cardEdgeX = cardRight
-                        cardEdgeY = Math.max(cardTop, Math.min(cardBottom, cardEdgeY))
-                      } else if (minIntersection.edge === 'top') {
-                        cardEdgeX = Math.max(cardLeft, Math.min(cardRight, cardEdgeX))
-                        cardEdgeY = cardTop
-                      } else if (minIntersection.edge === 'bottom') {
-                        cardEdgeX = Math.max(cardLeft, Math.min(cardRight, cardEdgeX))
-                        cardEdgeY = cardBottom
-                      }
-                    } else {
-                      // 如果没有找到有效交点，使用最近边界点
-                      // 计算到各边界的距离，选择最近的
-                      const distToLeft = Math.abs(finalX - cardLeft)
-                      const distToRight = Math.abs(finalX - cardRight)
-                      const distToTop = Math.abs(finalY - cardTop)
-                      const distToBottom = Math.abs(finalY - cardBottom)
-                      
-                      const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom)
-                      
-                      if (minDist === distToLeft) {
-                        cardEdgeX = cardLeft
-                        cardEdgeY = finalY
-                      } else if (minDist === distToRight) {
-                        cardEdgeX = cardRight
-                        cardEdgeY = finalY
-                      } else if (minDist === distToTop) {
-                        cardEdgeX = finalX
-                        cardEdgeY = cardTop
-                      } else {
-                        cardEdgeX = finalX
-                        cardEdgeY = cardBottom
-                      }
-                    }
-                  } else {
-                    // 如果距离太近，使用最近边界点
-                    const distToLeft = Math.abs(finalX - cardLeft)
-                    const distToRight = Math.abs(finalX - cardRight)
-                    const distToTop = Math.abs(finalY - cardTop)
-                    const distToBottom = Math.abs(finalY - cardBottom)
-                    
-                    const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom)
-                    
-                    if (minDist === distToLeft) {
-                      cardEdgeX = cardLeft
-                      cardEdgeY = finalY
-                    } else if (minDist === distToRight) {
-                      cardEdgeX = cardRight
-                      cardEdgeY = finalY
-                    } else if (minDist === distToTop) {
-                      cardEdgeX = finalX
-                      cardEdgeY = cardTop
-                    } else {
-                      cardEdgeX = finalX
-                      cardEdgeY = cardBottom
-                    }
-                  }
-                  
-                  // 连线起点：卡片边缘点（转换为 SVG viewBox 坐标）
-                  let lineStartX = (cardEdgeX / 100) * fixedSvgWidth
-                  let lineStartY = (cardEdgeY / 100) * fixedSvgHeight
-                  if (cardContainer && mapContainerRef.current && svgContainerRef.current) {
-                    const innerCard = cardContainer.querySelector('[data-inner-card="true"]') as HTMLElement | null
-                    const svgElement = svgContainerRef.current.querySelector('svg') as SVGSVGElement | null
-                    if (innerCard && svgElement) {
-                      const cardRect = innerCard.getBoundingClientRect()
-                      const svgRect = svgElement.getBoundingClientRect()
-                      const vb = svgElement.viewBox.baseVal
-                      const cardCenterXViewport = cardRect.left + cardRect.width / 2
-                      const cardCenterYViewport = cardRect.top + cardRect.height / 2
-                      const lineEndXViewport = svgRect.left + (lineEndX / vb.width) * svgRect.width
-                      const lineEndYViewport = svgRect.top + (lineEndY / vb.height) * svgRect.height
-                      const dirX = lineEndXViewport - cardCenterXViewport
-                      const dirY = lineEndYViewport - cardCenterYViewport
-                      const absDirX = Math.abs(dirX)
-                      const absDirY = Math.abs(dirY)
-                      let hitX = (cardRect.left + cardRect.right) / 2
-                      let hitY = (cardRect.top + cardRect.bottom) / 2
-                      if (absDirX > absDirY) {
-                        hitX = dirX > 0 ? cardRect.right : cardRect.left
-                        const slope = dirY / dirX
-                        hitY += (hitX - (cardRect.left + cardRect.right) / 2) * slope
-                        hitY = Math.max(cardRect.top, Math.min(cardRect.bottom, hitY))
-                      } else if (absDirY > 0.0001) {
-                        hitY = dirY > 0 ? cardRect.bottom : cardRect.top
-                        const invSlope = dirX / dirY
-                        hitX += (hitY - (cardRect.top + cardRect.bottom) / 2) * invSlope
-                        hitX = Math.max(cardRect.left, Math.min(cardRect.right, hitX))
-                      }
-                      const epsilon = 4
-                      if (dirX < 0) hitX -= epsilon
-                      if (dirX > 0) hitX += epsilon
-                      if (dirY < 0) hitY -= epsilon
-                      if (dirY > 0) hitY += epsilon
-                      hitX = Math.round(hitX * devicePixelRatio) / devicePixelRatio
-                      hitY = Math.round(hitY * devicePixelRatio) / devicePixelRatio
-                      lineStartX = ((hitX - svgRect.left) / svgRect.width) * vb.width
-                      lineStartY = ((hitY - svgRect.top) / svgRect.height) * vb.height
-                      cardEdgeX = (lineStartX / fixedSvgWidth) * 100
-                      cardEdgeY = (lineStartY / fixedSvgHeight) * 100
-                    }
-                  }
-
-                  // 调试日志：卡片边缘点计算
-                  console.log(`📌 Card edge calculation for ${regionId}:`)
-                  console.log(`   Card Center: (${finalX.toFixed(2)}%, ${finalY.toFixed(2)}%)`)
-                  console.log(`   Card Bounds: L:${cardLeft.toFixed(2)}%, R:${cardRight.toFixed(2)}%, T:${cardTop.toFixed(2)}%, B:${cardBottom.toFixed(2)}%`)
-                  console.log(`   Card Size: ${cardWidth.toFixed(2)}% x ${cardHeight.toFixed(2)}%`)
-                  console.log(`   Card Edge: (${cardEdgeX.toFixed(2)}%, ${cardEdgeY.toFixed(2)}%)`)
-                  console.log(`   Line Start (SVG): (${lineStartX.toFixed(1)}, ${lineStartY.toFixed(1)})`)
-                  console.log(`   Line End (SVG): (${lineEndX.toFixed(1)}, ${lineEndY.toFixed(1)})`)
-                  console.log(`   Endpoint (%): (${lineEndXPercent.toFixed(2)}%, ${lineEndYPercent.toFixed(2)}%)`)
-                  console.log(`   Distance to Endpoint: ${distanceToEndpoint.toFixed(2)}`)
-                  console.log(`   Edge Attached: ${cardEdgeX === cardLeft || cardEdgeX === cardRight || cardEdgeY === cardTop || cardEdgeY === cardBottom}`)
-                  console.log(`📌 Card edge details for ${regionId}:`)
-                  console.log(`   Card Center: (${finalX.toFixed(2)}%, ${finalY.toFixed(2)}%)`)
-                  console.log(`   Card Left: ${cardLeft.toFixed(2)}%`)
-                  console.log(`   Card Right: ${cardRight.toFixed(2)}%`)
-                  console.log(`   Card Top: ${cardTop.toFixed(2)}%`)
-                  console.log(`   Card Bottom: ${cardBottom.toFixed(2)}%`)
-                  console.log(`   Card Edge X: ${cardEdgeX.toFixed(2)}%`)
-                  console.log(`   Card Edge Y: ${cardEdgeY.toFixed(2)}%`)
-                  console.log(`   Is on Left Edge: ${Math.abs(cardEdgeX - cardLeft) < 0.01}`)
-                  console.log(`   Is on Right Edge: ${Math.abs(cardEdgeX - cardRight) < 0.01}`)
-                  console.log(`   Is on Top Edge: ${Math.abs(cardEdgeY - cardTop) < 0.01}`)
-                  console.log(`   Is on Bottom Edge: ${Math.abs(cardEdgeY - cardBottom) < 0.01}`)
+                  const lineStartX = (finalX / 100) * fixedSvgWidth
+                  const lineStartY = (finalY / 100) * fixedSvgHeight
                   
                   // 获取区域颜色
                   const regionColor = getRegionColor(regionId)
@@ -2591,26 +2037,10 @@ export default function InteractiveMap({
                   const hasValidCoords = !isNaN(lineStartX) && !isNaN(lineStartY) && !isNaN(lineEndX) && !isNaN(lineEndY)
                   const willRender = lineLength > 0 && hasValidCoords && startInViewBox && endInViewBox
                   
-                  console.warn(`🔗 Line for ${regionId}: start=(${lineStartX.toFixed(1)}, ${lineStartY.toFixed(1)}), end=(${lineEndX.toFixed(1)}, ${lineEndY.toFixed(1)}), viewBox=${fixedSvgWidth}x${fixedSvgHeight}, willRender=${willRender}, color=${lineColor}`)
-                  
                   // 如果坐标无效或不在 viewBox 范围内，不渲染连线
                   if (!willRender) {
-                    skippedCount++
-                    console.warn(`⚠️ Skipping line for ${regionId}: invalid coordinates or zero length or out of viewBox`, {
-                      lineLength: lineLength.toFixed(1),
-                      hasValidCoords,
-                      startInViewBox,
-                      endInViewBox,
-                      start: `(${lineStartX.toFixed(1)}, ${lineStartY.toFixed(1)})`,
-                      end: `(${lineEndX.toFixed(1)}, ${lineEndY.toFixed(1)})`,
-                      viewBox: `${fixedSvgWidth} x ${fixedSvgHeight}`
-                    })
                     return null
                   }
-
-                  renderedCount++
-
-                  console.warn(`✅ Rendering line element for ${regionId}: x1=${lineStartX.toFixed(2)}, y1=${lineStartY.toFixed(2)}, x2=${lineEndX.toFixed(2)}, y2=${lineEndY.toFixed(2)}, stroke=${lineColor}`)
 
                   return (
                     <g key={regionId} data-region-line-id={regionId}>
@@ -2648,13 +2078,12 @@ export default function InteractiveMap({
                   )
                   })
                   
-                  console.log(`📊 Line SVG rendering summary: ${renderedCount} rendered, ${skippedCount} skipped`)
                   return elements
                 })()}
               </svg>
             )
             } catch (error) {
-              console.error('❌ Error rendering line SVG:', error)
+              console.error('Error rendering line SVG:', error)
               // 即使出错也返回一个空的 SVG，确保容器存在
               return (
                 <svg
@@ -2682,7 +2111,6 @@ export default function InteractiveMap({
 
           const position = regionPositions[regionId]
           if (!position) {
-            console.warn(`⚠️ Region position not found for ${regionId}. Available keys:`, Object.keys(regionPositions))
             return null
           }
           
