@@ -1,7 +1,9 @@
-import { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react'
+
+import { useEffect, useState, useRef, useCallback, useLayoutEffect, useMemo } from 'react'
 import { LocalStudent, getRegionColor, CARD_COLORS } from '@/lib/storage'
 import { DraggableStudentCard, AggregatedCard } from './StudentCard'
 import { ZoomIn, ZoomOut, Maximize2, Download, Loader2 } from 'lucide-react'
+import html2canvas from 'html2canvas'
 
 // 临时配置：禁用SVG路径提取，强制使用地理坐标（用于调试SVG坐标问题）
 const FORCE_USE_GEOGRAPHIC_COORDINATES = false
@@ -21,7 +23,6 @@ const getCardPositionsFromStorage = (country: 'china' | 'usa'): Record<string, C
       return JSON.parse(stored)
     }
   } catch (error) {
-    console.warn('Failed to read from localStorage:', error)
   }
   return {}
 }
@@ -31,7 +32,6 @@ const saveCardPositionsToStorage = (country: 'china' | 'usa', positions: Record<
     const key = `${STORAGE_PREFIX}-${country}-card-positions`
     localStorage.setItem(key, JSON.stringify(positions))
   } catch (error) {
-    console.warn('Failed to save to localStorage:', error)
   }
 }
 
@@ -152,51 +152,55 @@ export default function InteractiveMap({
     return possibleIds
   }
 
-  // ID匹配辅助函数
+  // A more robust ID matching helper function
   const findRegionById = (svgRegionId: string): Region | undefined => {
-    let region = regions.find(r => r.id === svgRegionId)
+    if (!svgRegionId) return undefined
+
+    // Attempt direct match first
+    let region = regions.find((r) => r.id === svgRegionId)
     if (region) return region
-    
+
+    // Handle country-specific prefixes
     if (country === 'china') {
-      const withPrefix = `CN-${svgRegionId}`
-      region = regions.find(r => r.id === withPrefix)
+      // Handles cases where svgRegionId is "130000" and region.id is "CN-130000"
+      region = regions.find((r) => r.id === `CN-${svgRegionId}`)
       if (region) return region
-    }
-    
-    if (country === 'usa' && svgRegionId.startsWith('US-')) {
-      const fipsCode = svgRegionId.replace('US-', '')
-      const fipsToStateCode: Record<string, string> = {
-        '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA',
-        '08': 'CO', '09': 'CT', '10': 'DE', '11': 'DC', '12': 'FL',
-        '13': 'GA', '15': 'HI', '16': 'ID', '17': 'IL', '18': 'IN',
-        '19': 'IA', '20': 'KS', '21': 'KY', '22': 'LA', '23': 'ME',
-        '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN', '28': 'MS',
-        '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH',
-        '34': 'NJ', '35': 'NM', '36': 'NY', '37': 'NC', '38': 'ND',
-        '39': 'OH', '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI',
-        '45': 'SC', '46': 'SD', '47': 'TN', '48': 'TX', '49': 'UT',
-        '50': 'VT', '51': 'VA', '53': 'WA', '54': 'WV', '55': 'WI', '56': 'WY'
+      // Handles cases where svgRegionId is "CN-130000" and region.id is "130000"
+      region = regions.find((r) => `CN-${r.id}` === svgRegionId)
+      if (region) return region
+    } else if (country === 'usa') {
+      // Handles cases where svgRegionId might be a FIPS code like "US-06"
+      // and we need to find the state code "CA"
+      const fipsToState: { [key: string]: string } = {
+        '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA', '08': 'CO', '09': 'CT', '10': 'DE', '11': 'DC', '12': 'FL', '13': 'GA', '15': 'HI', '16': 'ID', '17': 'IL', '18': 'IN', '19': 'IA', '20': 'KS', '21': 'KY', '22': 'LA', '23': 'ME', '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN', '28': 'MS', '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH', '34': 'NJ', '35': 'NM', '36': 'NY', '37': 'NC', '38': 'ND', '39': 'OH', '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI', '45': 'SC', '46': 'SD', '47': 'TN', '48': 'TX', '49': 'UT', '50': 'VT', '51': 'VA', '53': 'WA', '54': 'WV', '55': 'WI', '56': 'WY'
       }
-      
-      const stateCode = fipsToStateCode[fipsCode]
-      if (stateCode) {
-        const fullId = `US-${stateCode}`
-        region = regions.find(r => r.id === fullId)
-        if (region) return region
+      if (svgRegionId.startsWith('US-')) {
+        const code = svgRegionId.split('-')[1]
+        const stateAbbr = fipsToState[code]
+        if (stateAbbr) {
+          region = regions.find((r) => r.id === `US-${stateAbbr}`)
+          if (region) return region
+        }
       }
     }
-    
+
+    // Fallback for partial matches (e.g., svgRegionId is "130000" and region.id ends with "-130000")
+    region = regions.find((r) => r.id.endsWith(`-${svgRegionId}`))
+    if (region) return region
+
     return undefined
   }
 
   // 按地区分组学生
-  const studentsByRegion = students.reduce((acc, student) => {
-    if (!acc[student.region_id]) {
-      acc[student.region_id] = []
-    }
-    acc[student.region_id].push(student)
-    return acc
-  }, {} as Record<string, LocalStudent[]>)
+  const studentsByRegion = useMemo(() => {
+    return students.reduce((acc, student) => {
+      if (!acc[student.region_id]) {
+        acc[student.region_id] = []
+      }
+      acc[student.region_id].push(student)
+      return acc
+    }, {} as Record<string, LocalStudent[]>)
+  }, [students])
 
   // 为有学生的省份添加填充颜色 - 支持任意颜色值
   const addRegionFillColors = (svgText: string, studentsByRegion: Record<string, LocalStudent[]>, regions: Region[]): string => {
@@ -322,7 +326,6 @@ export default function InteractiveMap({
         })
         
         if (idMatches === 0) {
-          console.warn(`No SVG path found for region ${regionId} (SVG ID: ${svgId})`)
         }
       }
     })
@@ -376,7 +379,6 @@ export default function InteractiveMap({
         y: finalY
       }
     } catch (error) {
-      console.warn('Error extracting path boundary point:', error)
       return null
     }
   }
@@ -521,7 +523,6 @@ export default function InteractiveMap({
               height: 4.0 // 默认边界框高度
           }
         }
-          console.warn(`Region ${region.id}: Using geographic coordinates fallback`)
         }
         
         positions[region.id] = centerPoint
@@ -541,7 +542,6 @@ export default function InteractiveMap({
       setLoading(false)
       
     } catch (error) {
-      console.error('Error loading SVG:', error)
       setSvgContent(`
         <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
           <text x="400" y="300" text-anchor="middle" font-size="18" fill="#666">
@@ -673,52 +673,52 @@ export default function InteractiveMap({
 
   // 处理SVG交互
   useEffect(() => {
-    if (!svgContainerRef.current || !svgContent) return
+    const svgContainer = svgContainerRef.current;
+    if (!svgContainer) return;
 
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as SVGElement
-      
-      if (target.tagName === 'path' || target.tagName === 'PATH') {
-        const regionId = target.dataset.regionId || target.getAttribute('data-region-id')
-        
+    const handleClick = (e: Event) => {
+      const target = e.target as SVGElement;
+      const path = target.closest('path[data-region-id]');
+
+      if (path) {
+        const regionId = path.getAttribute('data-region-id');
         if (regionId) {
-          const region = findRegionById(regionId)
-          
+          const region = findRegionById(regionId);
           if (region) {
-            const regionStudents = studentsByRegion[region.id] || []
-            
+            const regionStudents = studentsByRegion[region.id] || [];
             if (regionStudents.length >= 4) {
-              onShowList(region, regionStudents)
+              onShowList(region, regionStudents);
             } else {
-              onRegionClick(region)
+              onRegionClick(region);
             }
           }
         }
       }
-    }
+    };
 
-    const handleHover = (e: MouseEvent) => {
-      const target = e.target as SVGElement
-      if (target.tagName === 'path' && target.dataset.regionId) {
-        setHoveredRegion(target.dataset.regionId)
+    const handleHover = (e: Event) => {
+      const target = e.target as SVGElement;
+      const path = target.closest('path[data-region-id]');
+      if (path) {
+        setHoveredRegion(path.getAttribute('data-region-id'));
       }
-    }
+    };
 
     const handleLeave = () => {
-      setHoveredRegion(null)
-    }
+      setHoveredRegion(null);
+    };
 
-    const container = svgContainerRef.current
-    container.addEventListener('click', handleClick)
-    container.addEventListener('mouseover', handleHover)
-    container.addEventListener('mouseleave', handleLeave)
+    // 直接在SVG容器上附加事件监听器
+    svgContainer.addEventListener('click', handleClick);
+    svgContainer.addEventListener('mouseover', handleHover);
+    svgContainer.addEventListener('mouseout', handleLeave);
 
     return () => {
-      container.removeEventListener('click', handleClick)
-      container.removeEventListener('mouseover', handleHover)
-      container.removeEventListener('mouseleave', handleLeave)
-    }
-  }, [regions, onRegionClick, studentsByRegion, onShowList, svgContent])
+      svgContainer.removeEventListener('click', handleClick);
+      svgContainer.removeEventListener('mouseover', handleHover);
+      svgContainer.removeEventListener('mouseout', handleLeave);
+    };
+  }, [svgContent, regions, onRegionClick, studentsByRegion, onShowList]);
 
   // 防抖保存到localStorage的定时器
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -1038,7 +1038,6 @@ export default function InteractiveMap({
               // 添加详细日志以便调试
               return result
             } catch (err) {
-              console.warn(`isPointInFill failed for region ${regionId}:`, err)
               return false
             }
           }
@@ -1376,7 +1375,6 @@ export default function InteractiveMap({
           newEndpoints[regionId] = { x: lineEndX, y: lineEndY }
           break
         } catch (error) {
-          console.warn(`Failed to compute DOM position for region ${regionId}:`, error)
           newEndpoints[regionId] = { x: position.x, y: position.y }
         }
       }
@@ -1389,42 +1387,37 @@ export default function InteractiveMap({
     setLineEndpoints(newEndpoints)
   }, [svgContent, regionPositions, cardPositions, svgViewBox, scale, cardDimensions])
 
-  // 在scale变化、卡片拖动、或SVG加载后重新计算连线终点
+  // robustly calculate line endpoints only when all necessary data and DOM elements are ready.
   useEffect(() => {
-    // 检查所有必要的 DOM 元素是否已渲染
-    const checkAndCalculate = () => {
-      const hasMapSvg = svgContainerRef.current && svgContainerRef.current.querySelector('svg')
-      const hasLineSvgContainer = lineSvgContainerRef.current
-      const hasLineSvg = hasLineSvgContainer && hasLineSvgContainer.querySelector('svg')
-      const hasAtLeastOneCard = Object.keys(studentsByRegion).length > 0 && 
-        document.querySelector(`[data-card-id="${Object.keys(studentsByRegion)[0]}"]`) !== null
-      
-      return hasMapSvg && hasLineSvgContainer && hasLineSvg && hasAtLeastOneCard
+    const renderedStudentRegions = Object.keys(studentsByRegion);
+
+    if (renderedStudentRegions.length === 0) {
+      setLineEndpoints({});
+      return;
     }
-    
-    // 使用setTimeout确保DOM已经更新，并添加检查确保所有必要的元素已渲染
-    let retryCount = 0
-    const maxRetries = 10
-    const retryDelay = 50
-    
-    const tryCalculate = () => {
-      if (checkAndCalculate()) {
-        calculateLineEndpoints()
-      } else {
-        retryCount++
-        if (retryCount < maxRetries) {
-          setTimeout(tryCalculate, retryDelay)
-        } else {
-          calculateLineEndpoints()
-        }
-      }
+
+    const allCardsMeasured = renderedStudentRegions.every(
+      (regionId) => cardDimensions[regionId] && cardDimensions[regionId].width > 0
+    );
+
+    const mapReady = svgContent && Object.keys(regionPositions).length > 0;
+
+    if (mapReady && allCardsMeasured) {
+      const animationFrameId = requestAnimationFrame(() => {
+        calculateLineEndpoints();
+      });
+
+      return () => cancelAnimationFrame(animationFrameId);
     }
-    
-    const timer = setTimeout(tryCalculate, 50)
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [scale, cardPositions, regionPositions, svgContent, calculateLineEndpoints, studentsByRegion, cardDimensions])
+  }, [
+    cardDimensions,
+    studentsByRegion,
+    regionPositions,
+    svgContent,
+    cardPositions,
+    scale,
+    calculateLineEndpoints,
+  ]);
 
   // 检查连线 SVG 容器的 DOM 状态
   useEffect(() => {
@@ -1436,449 +1429,71 @@ export default function InteractiveMap({
   const handleReset = () => setScale(1)
 
   // 导出当前视图为图片
-  const handleExport = async () => {
-    if (!mapContainerRef.current) {
-      console.error('Map container not available')
-      alert('地图容器不可用，无法导出')
-      return
-    }
-    
-    if (exporting) {
-      return
-    }
-    
-    let exportContainer: HTMLDivElement | null = null
-    
+  const handleExport = useCallback(async () => {
+    if (!mapContainerRef.current) return;
+    setExporting(true);
+
     try {
-      setExporting(true)
-      
-      // 动态导入html2canvas
-      let html2canvasModule
-      try {
-        html2canvasModule = await import('html2canvas')
-      } catch (importError) {
-        console.error('Failed to import html2canvas:', importError)
-        throw new Error('Failed to import html2canvas library')
-      }
-      
-      // 创建导出容器，只包含地图相关内容
-      exportContainer = document.createElement('div')
-      exportContainer.style.position = 'absolute'
-      exportContainer.style.top = '-9999px'
-      exportContainer.style.left = '-9999px'
-      exportContainer.style.width = mapContainerRef.current.offsetWidth + 'px'
-      exportContainer.style.height = mapContainerRef.current.offsetHeight + 'px'
-      exportContainer.style.backgroundColor = '#f5f5f5'
-      
-      // 克隆地图容器内容
-      const clonedContent = mapContainerRef.current.cloneNode(true) as HTMLElement
-      
-      // 移除调试相关元素
-      const debugElements = clonedContent.querySelectorAll('[data-debug], .debug, .console, [class*="debug"], [id*="debug"]')
-      debugElements.forEach(el => el.remove())
-      
-      // 移除可能的开发者工具窗口
-      const devTools = clonedContent.querySelectorAll('[class*="devtools"], [class*="console"], [class*="debugger"]')
-      devTools.forEach(el => el.remove())
-      
-      // 移除控制按钮（放大、缩小、重置按钮）
-      const controlButtons = clonedContent.querySelectorAll('[class*="absolute bottom-6 right-6"]')
-      controlButtons.forEach(el => el.remove())
-      
-      // 移除任何包含zoom、control、btn-icon的元素
-      const zoomElements = clonedContent.querySelectorAll('[class*="btn-icon"], [class*="zoom"], [title*="放大"], [title*="缩小"], [title*="重置"]')
-      zoomElements.forEach(el => el.remove())
-      
-      // 修复导出时文本挤压问题：调整学生卡片样式，确保文本完整显示
-      const studentCards = clonedContent.querySelectorAll('[data-card-id]')
-      studentCards.forEach(card => {
-        const cardElement = card as HTMLElement
-        // 确保卡片有足够的宽度，移除最大宽度限制
-        const computedStyle = window.getComputedStyle(cardElement)
-        if (computedStyle.maxWidth && computedStyle.maxWidth !== 'none') {
-          cardElement.style.maxWidth = 'none'
-        }
-        // 增加卡片最小宽度，确保有足够空间
-        cardElement.style.minWidth = '220px'
-        
-        // 查找所有文本元素，只移除宽度限制和文本截断，保持其他样式
-        const textElements = cardElement.querySelectorAll('p, div, span')
-        textElements.forEach(textEl => {
-          const el = textEl as HTMLElement
-          const elStyle = window.getComputedStyle(el)
-          
-          // 直接移除内联样式中的maxWidth限制（优先级最高）
-          if (el.style.maxWidth) {
-            el.style.maxWidth = 'none'
-          }
-          // 移除计算样式中的maxWidth限制（但只针对固定像素值）
-          if (elStyle.maxWidth && elStyle.maxWidth !== 'none' && elStyle.maxWidth.includes('px')) {
-            el.style.maxWidth = 'none'
-          }
-          
-          // 移除内联样式中的文本截断设置
-          if (el.style.textOverflow === 'ellipsis') {
-            el.style.textOverflow = 'clip'
-            el.style.overflow = 'visible'
-          }
-          // 移除计算样式中的文本截断
-          if (elStyle.textOverflow === 'ellipsis') {
-            el.style.textOverflow = 'clip'
-            el.style.overflow = 'visible'
-          }
-          
-          // 如果设置了nowrap（内联或计算样式），改为normal以允许换行
-          if (el.style.whiteSpace === 'nowrap' || elStyle.whiteSpace === 'nowrap') {
-            el.style.whiteSpace = 'normal'
-            el.style.wordBreak = 'break-word'
-            el.style.overflow = 'visible'
-            el.style.textOverflow = 'clip'
-          }
-          
-          // 只移除固定宽度的限制，保留百分比和auto
-          if (el.style.width && el.style.width.includes('px')) {
-            el.style.width = 'auto'
-          }
-        })
-        
-        // 特别处理包含学生信息的flex容器
-        const flexContainers = cardElement.querySelectorAll('.flex-1, [class*="flex"]')
-        flexContainers.forEach(container => {
-          const el = container as HTMLElement
-          const containerStyle = window.getComputedStyle(el)
-          if (containerStyle.minWidth === '0px' || containerStyle.minWidth === '0') {
-            el.style.minWidth = 'auto'
-          }
-          if (containerStyle.maxWidth && containerStyle.maxWidth !== 'none') {
-            el.style.maxWidth = 'none'
-          }
-        })
-        
-        // 特别修复卡片标题部分（"河北省"、"2位同学"等）的垂直对齐
-        const titleElements = cardElement.querySelectorAll('p[class*="text-xs"], p[class*="font-semibold"]')
-        titleElements.forEach(titleEl => {
-          const el = titleEl as HTMLElement
-          const elStyle = window.getComputedStyle(el)
-          
-          // 修复标题的line-height，避免向下偏移
-          if (elStyle.lineHeight) {
-            const lineHeightValue = parseFloat(elStyle.lineHeight)
-            if (lineHeightValue > 1.2 && !isNaN(lineHeightValue)) {
-              el.style.lineHeight = '1.2'
-            }
-          }
-          
-          // 确保标题垂直对齐
-          el.style.verticalAlign = 'baseline'
-          el.style.marginTop = '0'
-          el.style.marginBottom = '0'
-        })
-      })
-      
-      // 确保所有包含学生信息的容器有足够宽度
-      const studentInfoContainers = clonedContent.querySelectorAll('.flex-1, [class*="min-w-0"]')
-      studentInfoContainers.forEach(container => {
-        const el = container as HTMLElement
-        const containerStyle = window.getComputedStyle(el)
-        if (containerStyle.minWidth === '0px' || containerStyle.minWidth === '0') {
-          el.style.minWidth = 'auto'
-        }
-        if (containerStyle.maxWidth && containerStyle.maxWidth !== 'none') {
-          el.style.maxWidth = 'none'
-        }
-        el.style.width = 'auto'
-      })
-      
-      // 修复垂直对齐：保持原始样式，只修复必要的宽度限制
-      // 查找所有可能的学生条目容器（包含flex和items-center的div）
-      const studentEntries = clonedContent.querySelectorAll('div[class*="flex"][class*="items-center"], div[class*="items-center"]')
-      studentEntries.forEach(entry => {
-        const entryEl = entry as HTMLElement
-        // 检查是否是学生条目（包含按钮或特定样式）
-        const hasButtons = entryEl.querySelector('button')
-        const hasStudentText = entryEl.textContent && (
-          entryEl.textContent.includes('|') || 
-          entryEl.textContent.includes('同学') ||
-          entryEl.querySelector('p')
-        )
-        
-        if (hasButtons || hasStudentText) {
-          // 确保flex容器正确设置，但保持原有样式
-          const computedStyle = window.getComputedStyle(entryEl)
-          if (computedStyle.display !== 'flex') {
-            entryEl.style.display = 'flex'
-          }
-          if (computedStyle.alignItems !== 'center') {
-            entryEl.style.alignItems = 'center'
-          }
-          // 保持原有的justify-content，不要强制覆盖
-          if (!entryEl.style.justifyContent) {
-            entryEl.style.justifyContent = 'space-between'
-          }
-          
-          // 修复文本元素：只移除宽度限制，保持其他样式
-          const textEls = entryEl.querySelectorAll('p')
-          textEls.forEach(textEl => {
-            const el = textEl as HTMLElement
-            // 只移除maxWidth限制，保持line-height等原有样式
-            if (el.style.maxWidth) {
-              el.style.maxWidth = 'none'
-            }
-            // 保持原有的margin和padding，不要强制清零
-            // 只确保文本截断被移除
-            if (el.style.textOverflow === 'ellipsis') {
-              el.style.textOverflow = 'clip'
-              el.style.overflow = 'visible'
-            }
-          })
-          
-          // 修复包含文本的div容器：只移除宽度限制
-          const textContainers = entryEl.querySelectorAll('div.flex-1, div[class*="flex-1"]')
-          textContainers.forEach(container => {
-            const el = container as HTMLElement
-            // 只移除maxWidth，保持其他样式
-            if (el.style.maxWidth) {
-              el.style.maxWidth = 'none'
-            }
-            // 确保flex布局正确
-            const computedStyle = window.getComputedStyle(el)
-            if (computedStyle.display === 'flex' && computedStyle.alignItems !== 'center') {
-              el.style.alignItems = 'center'
-            }
-          })
-        }
-      })
-      
-      exportContainer.appendChild(clonedContent)
-      document.body.appendChild(exportContainer)
-      
-      // 等待DOM稳定
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 使用html2canvas导出 - 提高清晰度
-      const canvas = await html2canvasModule.default(exportContainer, {
+      // 强制重绘以确保所有样式都已应用
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      const canvas = await html2canvas(mapContainerRef.current, {
         backgroundColor: '#f5f5f5',
-        scale: 2, // 提高清晰度到2倍
+        scale: 3,
         logging: false,
         useCORS: true,
-        allowTaint: false,
-        foreignObjectRendering: false,
-        imageTimeout: 15000,
-        removeContainer: false, // 手动清理，确保清理成功
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: exportContainer.offsetWidth,
-        windowHeight: exportContainer.offsetHeight,
         onclone: (clonedDoc) => {
-          // 在html2canvas克隆后再次修复文本显示问题
-          const clonedCards = clonedDoc.querySelectorAll('[data-card-id]')
-          clonedCards.forEach(card => {
-            const cardElement = card as HTMLElement
-            // 确保卡片宽度足够
-            cardElement.style.maxWidth = 'none'
-            cardElement.style.minWidth = '220px'
-            
-            // 修复所有文本元素：只移除宽度限制和文本截断，修复垂直对齐
-            const textElements = cardElement.querySelectorAll('p, div, span')
-            textElements.forEach(textEl => {
-              const el = textEl as HTMLElement
-              const elStyle = window.getComputedStyle(el)
-              
-              // 只移除maxWidth限制
-              if (el.style.maxWidth || (elStyle.maxWidth && elStyle.maxWidth !== 'none' && elStyle.maxWidth.includes('px'))) {
-                el.style.maxWidth = 'none'
-              }
-              
-              // 修复垂直对齐：调整过大的line-height
-              if (elStyle.lineHeight) {
-                const lineHeightValue = parseFloat(elStyle.lineHeight)
-                // 如果line-height大于1.2，可能导致向下偏移，调整为1.2
-                if (lineHeightValue > 1.2 && !isNaN(lineHeightValue)) {
-                  el.style.lineHeight = '1.2'
-                }
-              }
-              
-              // 确保vertical-align正确
-              if (el.tagName === 'P' || el.tagName === 'SPAN') {
-                el.style.verticalAlign = 'baseline'
-              }
-              
-              // 移除文本截断
-              if (el.style.textOverflow === 'ellipsis' || elStyle.textOverflow === 'ellipsis') {
-                el.style.textOverflow = 'clip'
-                el.style.overflow = 'visible'
-              }
-              
-              // 如果设置了nowrap，改为normal以允许换行
-              if (el.style.whiteSpace === 'nowrap' || elStyle.whiteSpace === 'nowrap') {
-                el.style.whiteSpace = 'normal'
-                el.style.wordBreak = 'break-word'
-                el.style.overflow = 'visible'
-                el.style.textOverflow = 'clip'
-              }
-              
-              // 只移除固定宽度的限制
-              if (el.style.width && el.style.width.includes('px')) {
-                el.style.width = 'auto'
-              }
-            })
-            
-            // 修复flex容器
-            const flexContainers = cardElement.querySelectorAll('.flex-1, [class*="flex"]')
-            flexContainers.forEach(container => {
-              const el = container as HTMLElement
-              el.style.minWidth = 'auto'
-              el.style.maxWidth = 'none'
-            })
-            
-            // 特别修复卡片标题部分（"河北省"、"2位同学"等）的垂直对齐
-            const titleElements = cardElement.querySelectorAll('p[class*="text-xs"], p[class*="font-semibold"]')
-            titleElements.forEach(titleEl => {
-              const el = titleEl as HTMLElement
-              const elStyle = window.getComputedStyle(el)
-              
-              // 修复标题的line-height，避免向下偏移
-              if (elStyle.lineHeight) {
-                const lineHeightValue = parseFloat(elStyle.lineHeight)
-                if (lineHeightValue > 1.2 && !isNaN(lineHeightValue)) {
-                  el.style.lineHeight = '1.2'
-                }
-              }
-              
-              // 确保标题垂直对齐
-              el.style.verticalAlign = 'baseline'
-              el.style.marginTop = '0'
-              el.style.marginBottom = '0'
-            })
-            
-            // 修复垂直对齐：保持原始样式，只确保flex布局正确
-            const studentEntries = cardElement.querySelectorAll('div[class*="flex"][class*="items-center"], div[class*="items-center"]')
-            studentEntries.forEach(entry => {
-              const entryEl = entry as HTMLElement
-              // 检查是否是学生条目
-              const hasButtons = entryEl.querySelector('button')
-              const hasStudentText = entryEl.textContent && (
-                entryEl.textContent.includes('|') || 
-                entryEl.textContent.includes('同学') ||
-                entryEl.querySelector('p')
-              )
-              
-              if (hasButtons || hasStudentText) {
-                // 确保flex容器正确设置，但保持原有样式
-                const computedStyle = window.getComputedStyle(entryEl)
-                if (computedStyle.display !== 'flex') {
-                  entryEl.style.display = 'flex'
-                }
-                if (computedStyle.alignItems !== 'center') {
-                  entryEl.style.alignItems = 'center'
-                }
-                // 保持原有的justify-content，不要强制覆盖
-                if (!entryEl.style.justifyContent) {
-                  entryEl.style.justifyContent = 'space-between'
-                }
-                
-                // 修复文本元素：只移除宽度限制，保持其他样式，修复垂直对齐
-                const textEls = entryEl.querySelectorAll('p')
-                textEls.forEach(textEl => {
-                  const el = textEl as HTMLElement
-                  const elStyle = window.getComputedStyle(el)
-                  
-                  // 只移除maxWidth限制
-                  if (el.style.maxWidth) {
-                    el.style.maxWidth = 'none'
-                  }
-                  
-                  // 修复垂直对齐：确保line-height不会导致向下偏移
-                  // 如果line-height太大，调整为更合适的值
-                  if (elStyle.lineHeight) {
-                    const lineHeightValue = parseFloat(elStyle.lineHeight)
-                    // 如果line-height大于1.2，可能导致偏移，调整为1.2
-                    if (lineHeightValue > 1.2) {
-                      el.style.lineHeight = '1.2'
-                    }
-                  }
-                  
-                  // 确保vertical-align正确
-                  el.style.verticalAlign = 'baseline'
-                  
-                  // 保持原有的margin和padding，不要强制清零
-                  // 只确保文本截断被移除
-                  if (el.style.textOverflow === 'ellipsis' || elStyle.textOverflow === 'ellipsis') {
-                    el.style.textOverflow = 'clip'
-                    el.style.overflow = 'visible'
-                  }
-                })
-                
-                // 修复包含文本的div容器：只移除宽度限制
-                const textContainers = entryEl.querySelectorAll('div.flex-1, div[class*="flex-1"]')
-                textContainers.forEach(container => {
-                  const el = container as HTMLElement
-                  // 只移除maxWidth，保持其他样式
-                  if (el.style.maxWidth) {
-                    el.style.maxWidth = 'none'
-                  }
-                  // 确保flex布局正确
-                  const computedStyle = window.getComputedStyle(el)
-                  if (computedStyle.display === 'flex' && computedStyle.alignItems !== 'center') {
-                    el.style.alignItems = 'center'
-                  }
-                })
-              }
-            })
-          })
-        }
-      })
-      
-      // 转换为dataUrl
-      const dataUrl = canvas.toDataURL('image/png', 1.0) // 最高质量
-      
-      // 下载图片
-      const link = document.createElement('a')
-      const timestamp = new Date().toISOString().split('T')[0]
-      link.download = `${country === 'china' ? '中国' : '美国'}-蹭饭地图-${timestamp}.png`
-      link.href = dataUrl
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      // 清理URL对象（如果使用blob）
-      if (link.href.startsWith('blob:')) {
-        URL.revokeObjectURL(link.href)
-      }
-      
-      console.log('Export completed successfully')
+          // 移除UI控件
+          const controlButtons = clonedDoc.querySelector('.absolute.bottom-6.right-6');
+          if (controlButtons) {
+            controlButtons.remove();
+          }
+
+          // 修正卡片和文本的渲染问题
+          const studentCards = clonedDoc.querySelectorAll('[data-card-id]');
+          studentCards.forEach((card) => {
+            const cardElement = card as HTMLElement;
+            // 确保transform和transform-origin在导出时不会导致模糊
+            cardElement.style.transform = 'translate(-50%, -50%) scale(1)';
+            cardElement.style.transformOrigin = 'center center';
+
+            // 优化所有文本元素的渲染
+            const textElements = cardElement.querySelectorAll('p, div, span, h3, h4');
+            textElements.forEach((textEl) => {
+              const el = textEl as HTMLElement;
+              el.style.fontSmoothing = 'antialiased';
+              el.style.textRendering = 'optimizeLegibility';
+              el.style.lineHeight = '1.5';
+              el.style.verticalAlign = 'middle';
+              el.style.textShadow = '0 0 1px rgba(0,0,0,0.1)';
+            });
+          });
+
+          // 确保SVG内的文本也得到优化
+          const svgElements = clonedDoc.querySelectorAll('svg');
+          svgElements.forEach(svg => {
+            const textNodes = svg.querySelectorAll('text');
+            textNodes.forEach(text => {
+              text.style.fontSmoothing = 'antialiased';
+              text.style.textRendering = 'optimizeLegibility';
+              text.style.letterSpacing = '0.5px'; // 微调字间距
+            });
+          });
+        },
+      });
+
+        // 下载图片
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.download = `${country === 'china' ? '中国' : '美国'}-蹭饭地图-${timestamp}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
     } catch (error) {
-      console.error('Export failed with details:', error)
-      console.error('Error type:', typeof error)
-      console.error('Error message:', error instanceof Error ? error.message : String(error))
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-      
-      // 提供更详细的错误信息
-      let errorMessage = '导出失败，请重试'
-      if (error instanceof Error) {
-        if (error.message.includes('html2canvas')) {
-          errorMessage = '图片生成库加载失败，请刷新页面后重试'
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
-          errorMessage = '网络错误，请检查网络连接后重试'
-        } else {
-          errorMessage = `导出失败: ${error.message}`
-        }
-      }
-      
-      alert(errorMessage)
+        alert('导出失败，请重试');
     } finally {
-      // 确保清理临时容器
-      if (exportContainer && document.body.contains(exportContainer)) {
-        try {
-          document.body.removeChild(exportContainer)
-          console.log('Export container cleaned up')
-        } catch (cleanupError) {
-          console.warn('Failed to cleanup export container:', cleanupError)
-        }
-      }
-      setExporting(false)
+        setExporting(false);
     }
-  }
+  }, [country, studentsByRegion, regions]);
 
   if (loading) {
     return (
@@ -1894,7 +1509,7 @@ export default function InteractiveMap({
   return (
     <div ref={mapContainerRef} data-map-container className="relative w-full h-full overflow-hidden bg-neutral-50">
       {/* 地图SVG容器 */}
-      <div className="absolute inset-0 flex items-center justify-center p-8" style={{ zIndex: 1 }}>
+      <div className="absolute inset-0 flex items-center justify-center p-8" style={{ zIndex: 10 }}>
         <div
           ref={svgContainerRef}
           data-export="true"
@@ -1908,7 +1523,7 @@ export default function InteractiveMap({
       <div 
         ref={lineSvgContainerRef}
         className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none" 
-        style={{ zIndex: 50 }}
+        style={{ zIndex: 20 }}
       >
         <div
           className="w-full h-full pointer-events-none transition-transform duration-300"
@@ -2013,10 +1628,41 @@ export default function InteractiveMap({
                   // 计算从卡片中心到连线终点的方向向量（百分比坐标）
                   const dxToEndpoint = lineEndXPercent - finalX
                   const dyToEndpoint = lineEndYPercent - finalY
-                  const distanceToEndpoint = Math.sqrt(dxToEndpoint * dxToEndpoint + dyToEndpoint * dyToEndpoint)
                   
-                  const lineStartX = (finalX / 100) * fixedSvgWidth
-                  const lineStartY = (finalY / 100) * fixedSvgHeight
+                  let lineStartPercentX = finalX
+                  let lineStartPercentY = finalY
+
+                  if (dxToEndpoint !== 0 || dyToEndpoint !== 0) {
+                    const halfWidth = cardWidth / 2
+                    const halfHeight = cardHeight / 2
+                    
+                    // Handle cases where card dimensions are not yet available
+                    if (halfWidth > 0 && halfHeight > 0) {
+                      if (dxToEndpoint === 0) { // Vertical line
+                          lineStartPercentY += (dyToEndpoint > 0 ? 1 : -1) * halfHeight
+                      } else if (dyToEndpoint === 0) { // Horizontal line
+                          lineStartPercentX += (dxToEndpoint > 0 ? 1 : -1) * halfWidth
+                      } else {
+                          const slope = dyToEndpoint / dxToEndpoint
+                          const cardDiagonalSlope = halfHeight / halfWidth
+
+                          if (Math.abs(slope) < cardDiagonalSlope) {
+                              // Intersects with left or right edge
+                              const sign = (dxToEndpoint > 0 ? 1 : -1)
+                              lineStartPercentX = finalX + sign * halfWidth
+                              lineStartPercentY = finalY + sign * halfWidth * slope
+                          } else {
+                              // Intersects with top or bottom edge
+                              const sign = (dyToEndpoint > 0 ? 1 : -1)
+                              lineStartPercentY = finalY + sign * halfHeight
+                              lineStartPercentX = finalX + sign * halfHeight / slope
+                          }
+                      }
+                    }
+                  }
+                  
+                  const lineStartX = (lineStartPercentX / 100) * fixedSvgWidth
+                  const lineStartY = (lineStartPercentY / 100) * fixedSvgHeight
                   
                   // 获取区域颜色
                   const regionColor = getRegionColor(regionId)
@@ -2083,7 +1729,6 @@ export default function InteractiveMap({
               </svg>
             )
             } catch (error) {
-              console.error('Error rendering line SVG:', error)
               // 即使出错也返回一个空的 SVG，确保容器存在
               return (
                 <svg
@@ -2100,7 +1745,7 @@ export default function InteractiveMap({
       </div>
 
       {/* 学生信息卡片叠加层 */}
-      <div className="absolute inset-0 flex items-center justify-center p-8 overflow-visible" style={{ zIndex: 5, pointerEvents: 'none' }}>
+      <div className="absolute inset-0 flex items-center justify-center p-8 overflow-visible" style={{ zIndex: 30, pointerEvents: 'none' }}>
         <div
           className="w-full h-full pointer-events-none transition-transform duration-300"
           style={{ transform: `scale(${scale})` }}
@@ -2138,7 +1783,7 @@ export default function InteractiveMap({
                   left: `${finalX}%`,
                   top: `${finalY}%`,
                   transform: 'translate(-50%, -50%)',
-                  zIndex: 20 // 提高 z-index，确保卡片在连线之上
+                  zIndex: 31
                 }}
               >
                 {regionStudents.length >= 4 ? (
@@ -2168,7 +1813,7 @@ export default function InteractiveMap({
       </div>
 
       {/* 统计信息面板 - 调整位置避免遮挡地图 */}
-      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 max-w-xs pointer-events-auto z-30" style={{maxWidth: '200px'}}>
+      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 max-w-xs pointer-events-auto z-40" style={{maxWidth: '200px'}}>
         <h3 className="font-semibold text-neutral-900 mb-2">
           {country === 'china' ? '中国' : '美国'}地图
         </h3>
@@ -2180,7 +1825,7 @@ export default function InteractiveMap({
       </div>
 
       {/* 控制按钮 */}
-      <div className="absolute bottom-6 right-6 flex flex-col gap-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-2 pointer-events-auto z-30">
+      <div className="absolute bottom-6 right-6 flex flex-col gap-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-2 pointer-events-auto z-40">
         <button onClick={handleZoomIn} className="btn-icon" title="放大">
           <ZoomIn className="w-5 h-5" />
         </button>

@@ -179,16 +179,18 @@ function App() {
           className="w-full"
           style={{ height: 'calc(100vh - 4rem)' }}
         >
-          <InteractiveMap
-            country={selectedCountry}
-            regions={getCurrentRegions()}
-            students={getCurrentCountryStudents()}
-            onRegionClick={handleRegionClick}
-            onStudentEdit={handleStudentEdit}
-            onStudentDelete={handleStudentDelete}
-            onShowList={handleShowList}
-            colorChanged={colorChanged}
-          />
+          {!loading && mapsConfig && (
+            <InteractiveMap
+              country={selectedCountry}
+              regions={getCurrentRegions()}
+              students={getCurrentCountryStudents()}
+              onRegionClick={handleRegionClick}
+              onStudentEdit={handleStudentEdit}
+              onStudentDelete={handleStudentDelete}
+              onShowList={handleShowList}
+              colorChanged={colorChanged}
+            />
+          )}
         </div>
       </main>
 
