@@ -1,0 +1,98 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - heading "蹭饭地图" [level=1] [ref=e7]
+      - generic [ref=e8]:
+        - button "中国" [ref=e9] [cursor=pointer]
+        - button "美国" [ref=e10] [cursor=pointer]
+      - generic [ref=e11]:
+        - generic [ref=e13]: 已添加 0 位同学
+        - button "颜色管理" [ref=e14] [cursor=pointer]:
+          - img [ref=e15]
+          - generic [ref=e21]: 颜色管理
+        - button "导出当前" [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+          - generic [ref=e26]: 导出当前
+        - button "全球导出" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e31]: 全球导出
+  - main [ref=e32]:
+    - generic [ref=e34]:
+      - img "CHINA Map" [ref=e37]:
+        - generic [ref=e38]:
+          - generic "北京市" [ref=e39] [cursor=pointer]
+          - generic "天津市" [ref=e40] [cursor=pointer]
+          - generic "河北省" [ref=e41] [cursor=pointer]
+          - generic "山西省" [ref=e42] [cursor=pointer]
+          - generic "内蒙古自治区" [ref=e43] [cursor=pointer]
+          - generic "辽宁省" [ref=e44] [cursor=pointer]
+          - generic "吉林省" [ref=e45] [cursor=pointer]
+          - generic "黑龙江省" [ref=e46] [cursor=pointer]
+          - generic "上海市" [ref=e47] [cursor=pointer]
+          - generic "江苏省" [ref=e48] [cursor=pointer]
+          - generic "浙江省" [ref=e49] [cursor=pointer]
+          - generic "安徽省" [ref=e50] [cursor=pointer]
+          - generic "福建省" [ref=e51] [cursor=pointer]
+          - generic "江西省" [ref=e52] [cursor=pointer]
+          - generic "山东省" [ref=e53] [cursor=pointer]
+          - generic "河南省" [ref=e54] [cursor=pointer]
+          - generic "湖北省" [ref=e55] [cursor=pointer]
+          - generic "湖南省" [ref=e56] [cursor=pointer]
+          - generic "广东省" [ref=e57] [cursor=pointer]
+          - generic "广西壮族自治区" [ref=e58] [cursor=pointer]
+          - generic "海南省" [ref=e59] [cursor=pointer]
+          - generic "重庆市" [ref=e60] [cursor=pointer]
+          - generic "四川省" [ref=e61] [cursor=pointer]
+          - generic "贵州省" [ref=e62] [cursor=pointer]
+          - generic "云南省" [ref=e63] [cursor=pointer]
+          - generic "西藏自治区" [ref=e64] [cursor=pointer]
+          - generic "陕西省" [ref=e65] [cursor=pointer]
+          - generic "甘肃省" [ref=e66] [cursor=pointer]
+          - generic "青海省" [ref=e67] [cursor=pointer]
+          - generic "宁夏回族自治区" [ref=e68] [cursor=pointer]
+          - generic "新疆维吾尔自治区" [ref=e69] [cursor=pointer]
+          - generic "台湾省" [ref=e70] [cursor=pointer]
+          - generic "香港特别行政区" [ref=e71] [cursor=pointer]
+          - generic "澳门特别行政区" [ref=e72] [cursor=pointer]
+      - generic:
+        - generic:
+          - img
+      - generic [ref=e74]:
+        - heading "中国地图" [level=3] [ref=e75]
+        - generic [ref=e76]:
+          - paragraph [ref=e77]: "已添加同学: 0 位"
+          - paragraph [ref=e78]: "覆盖地区: 0 个"
+          - paragraph [ref=e79]: 点击地图区域添加或查看同学信息
+      - generic [ref=e80]:
+        - button "放大" [ref=e81] [cursor=pointer]:
+          - img [ref=e82]
+        - button "缩小" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+        - button "重置" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+        - button "导出图片" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+  - generic [ref=e101]:
+    - generic [ref=e102]:
+      - generic [ref=e103]:
+        - heading "添加同学信息" [level=2] [ref=e104]
+        - paragraph [ref=e105]: 北京市
+      - button [ref=e106] [cursor=pointer]:
+        - img [ref=e107]
+    - generic [ref=e110]:
+      - generic [ref=e111]:
+        - generic [ref=e112]: 姓名 *
+        - textbox "姓名 *" [ref=e113]:
+          - /placeholder: 请输入同学姓名
+      - generic [ref=e114]:
+        - generic [ref=e115]: 具体城市 *
+        - textbox "具体城市 *" [ref=e116]:
+          - /placeholder: 请输入具体城市名称
+      - generic [ref=e117]: 提示：同一省/州的所有同学将使用相同的卡片颜色
+      - generic [ref=e118]:
+        - button "取消" [ref=e119] [cursor=pointer]
+        - button "保存" [ref=e120] [cursor=pointer]
+```

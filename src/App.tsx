@@ -5,7 +5,7 @@ import Navigation from './components/Navigation'
 import InteractiveMap from './components/InteractiveMap'
 import StudentModal from './components/StudentModal'
 import StudentListModal from './components/StudentListModal'
-import ExportModal from './components/ExportModal_V8_Fixed'
+import ExportModal from './components/ExportModal'
 import GlobalExportModal from './components/GlobalExportModal'
 import RegionColorManager from './components/RegionColorManager'
 
@@ -43,24 +43,14 @@ function App() {
 
   // 加载地图配置
   useEffect(() => {
-    console.log('=== App.tsx: 正在加载地图配置 ===')
     fetch('/data/maps-config.json')
-      .then(res => {
-        console.log('=== App.tsx: 地图配置响应状态:', res.status)
-        return res.json()
-      })
+      .then(res => res.json())
       .then(data => {
-        console.log('=== App.tsx: 地图配置加载成功:', {
-          hasData: !!data,
-          countries: Object.keys(data?.countries || {}),
-          chinaRegions: data?.countries?.china?.administrative_divisions?.length || 0,
-          usaRegions: data?.countries?.usa?.administrative_divisions?.length || 0
-        })
         setMapsConfig(data)
         setLoading(false)
       })
       .catch(err => {
-        console.error('=== App.tsx: 地图配置加载失败 ===', err)
+        console.error('Failed to load map configuration:', err)
         setLoading(false)
       })
   }, [])
@@ -116,17 +106,14 @@ function App() {
   }
 
   const handleStudentDelete = async (id: string) => {
-    console.log('handleStudentDelete called with id:', id)
     try {
       const success = deleteStudent(id)
-      console.log('deleteStudent returned:', success)
       if (!success) {
         console.error('Delete failed: student not found')
         alert('删除失败，请重试')
         return
       }
       refreshStudents()
-      console.log('Students refreshed after deletion')
     } catch (error) {
       console.error('Failed to delete student:', error)
       alert('删除失败，请重试')
@@ -146,29 +133,14 @@ function App() {
   }
 
   const getCurrentRegions = (): Region[] => {
-    console.log('=== App.tsx: getCurrentRegions called ===', {
-      hasMapsConfig: !!mapsConfig,
-      selectedCountry,
-      regionsCount: mapsConfig?.countries?.[selectedCountry]?.administrative_divisions?.length || 0
-    })
     if (!mapsConfig) {
-      console.log('=== App.tsx: getCurrentRegions - mapsConfig is null, returning empty array')
       return []
     }
-    const regions = mapsConfig.countries[selectedCountry].administrative_divisions
-    console.log('=== App.tsx: getCurrentRegions returning:', regions.length, 'regions')
-    return regions
+    return mapsConfig.countries[selectedCountry].administrative_divisions
   }
 
   const getCurrentCountryStudents = (): LocalStudent[] => {
-    console.log('=== App.tsx: getCurrentCountryStudents called ===', {
-      totalStudents: students.length,
-      selectedCountry,
-      filteredCount: students.filter(s => s.country === selectedCountry).length
-    })
-    const filtered = students.filter(s => s.country === selectedCountry)
-    console.log('=== App.tsx: getCurrentCountryStudents returning:', filtered.length, 'students')
-    return filtered
+    return students.filter(s => s.country === selectedCountry)
   }
 
   const getRegionCount = (): number => {
@@ -207,28 +179,18 @@ function App() {
           className="w-full"
           style={{ height: 'calc(100vh - 4rem)' }}
         >
-          {(() => {
-            const regions = getCurrentRegions()
-            const students = getCurrentCountryStudents()
-            console.log('=== App.tsx: 准备渲染InteractiveMap ===', {
-              country: selectedCountry,
-              regionsCount: regions.length,
-              studentsCount: students.length,
-              colorChanged
-            })
-            return (
-              <InteractiveMap
-                country={selectedCountry}
-                regions={[...regions]} // 创建新的数组引用确保useEffect触发
-                students={students}
-                onRegionClick={handleRegionClick}
-                onStudentEdit={handleStudentEdit}
-                onStudentDelete={handleStudentDelete}
-                onShowList={handleShowList}
-                colorChanged={colorChanged}
-              />
-            )
-          })()}
+          {!loading && mapsConfig && (
+            <InteractiveMap
+              country={selectedCountry}
+              regions={getCurrentRegions()}
+              students={getCurrentCountryStudents()}
+              onRegionClick={handleRegionClick}
+              onStudentEdit={handleStudentEdit}
+              onStudentDelete={handleStudentDelete}
+              onShowList={handleShowList}
+              colorChanged={colorChanged}
+            />
+          )}
         </div>
       </main>
 
