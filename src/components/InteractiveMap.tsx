@@ -5,9 +5,6 @@ import { DraggableStudentCard, AggregatedCard } from './StudentCard'
 import { ZoomIn, ZoomOut, Maximize2, Download, Loader2 } from 'lucide-react'
 import html2canvas from 'html2canvas'
 
-// 临时配置：禁用SVG路径提取，强制使用地理坐标（用于调试SVG坐标问题）
-const FORCE_USE_GEOGRAPHIC_COORDINATES = false
-
 // localStorage键前缀
 const STORAGE_PREFIX = 'meal-map'
 
@@ -113,7 +110,10 @@ export default function InteractiveMap({
   const [cardDimensions, setCardDimensions] = useState<Record<string, { width: number; height: number }>>({})
   const [svgViewBox, setSvgViewBox] = useState<{ width: number; height: number }>({ width: 1200, height: 900 })
   const [forceUpdate, setForceUpdate] = useState(0)
-  const [lineEndpoints, setLineEndpoints] = useState<Record<string, { x: number; y: number }>>({})
+  
+  // New state to hold all line data (start and end points)
+  const [lineData, setLineData] = useState<Record<string, { start: { x: number; y: number }; end: { x: number; y: number } }>>({})
+
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const svgContainerRef = useRef<HTMLDivElement>(null)
   const lineSvgContainerRef = useRef<HTMLDivElement>(null)
@@ -563,86 +563,6 @@ export default function InteractiveMap({
     }, 50)
   }, []) // 移除regions.length依赖
 
-  // 简化的F12检测机制（不再需要动态调整SVG viewBox）
-  useEffect(() => {
-    if (!mapContainerRef.current) return
-
-    let devtoolsOpen = false
-    let resizeTimeout: NodeJS.Timeout | null = null
-
-    // 检测开发者工具是否打开
-    const detectDevTools = () => {
-      const widthThreshold = window.outerWidth - window.innerWidth > 160
-      const heightThreshold = window.outerHeight - window.innerHeight > 160
-      
-      const isOpen = widthThreshold || heightThreshold
-      
-      if (isOpen !== devtoolsOpen) {
-        devtoolsOpen = isOpen
-        
-        // 延迟触发重新计算，确保布局稳定
-        if (resizeTimeout) clearTimeout(resizeTimeout)
-        resizeTimeout = setTimeout(() => {
-          triggerForceUpdate()
-        }, 100)
-      }
-    }
-
-    // 监听窗口尺寸变化
-    const handleResize = () => {
-      if (resizeTimeout) clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(() => {
-        detectDevTools()
-      }, 50)
-    }
-
-    // 监听键盘事件（F12键）
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F12') {
-        if (resizeTimeout) clearTimeout(resizeTimeout)
-        resizeTimeout = setTimeout(() => {
-          detectDevTools()
-          triggerForceUpdate()
-        }, 200) // F12按下后等待更长时间
-      }
-    }
-
-    // 监听窗口焦点变化
-    const handleFocus = () => {
-      if (resizeTimeout) clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(() => {
-        detectDevTools()
-      }, 100)
-    }
-
-    // 初始检测
-    detectDevTools()
-
-    // 添加事件监听器
-    window.addEventListener('resize', handleResize)
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('focus', handleFocus)
-    document.addEventListener('visibilitychange', handleFocus)
-
-    // ResizeObserver作为主要检测
-    const resizeObserver = new ResizeObserver(() => {
-      if (resizeTimeout) clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(() => {
-        detectDevTools()
-      }, 50)
-    })
-
-    resizeObserver.observe(mapContainerRef.current)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('focus', handleFocus)
-      document.removeEventListener('visibilitychange', handleFocus)
-      resizeObserver.disconnect()
-      if (resizeTimeout) clearTimeout(resizeTimeout)
-    }
-  }, []) // 移除triggerForceUpdate依赖
 
   // 监听国家变化和数据变化，触发地图重新加载
   useEffect(() => {
@@ -677,46 +597,45 @@ export default function InteractiveMap({
     if (!svgContainer) return;
 
     const handleClick = (e: Event) => {
-      const target = e.target as SVGElement;
-      const path = target.closest('path[data-region-id]');
+        const target = e.currentTarget as SVGPathElement; // currentTarget is the path itself
+        const regionId = target.getAttribute('data-region-id');
 
-      if (path) {
-        const regionId = path.getAttribute('data-region-id');
         if (regionId) {
-          const region = findRegionById(regionId);
-          if (region) {
-            const regionStudents = studentsByRegion[region.id] || [];
-            if (regionStudents.length >= 4) {
-              onShowList(region, regionStudents);
-            } else {
-              onRegionClick(region);
+            const region = findRegionById(regionId);
+            if (region) {
+                const regionStudents = studentsByRegion[region.id] || [];
+                if (regionStudents.length >= 4) {
+                    onShowList(region, regionStudents);
+                } else {
+                    onRegionClick(region);
+                }
             }
-          }
         }
-      }
     };
 
     const handleHover = (e: Event) => {
-      const target = e.target as SVGElement;
-      const path = target.closest('path[data-region-id]');
-      if (path) {
-        setHoveredRegion(path.getAttribute('data-region-id'));
-      }
+        const target = e.currentTarget as SVGPathElement;
+        setHoveredRegion(target.getAttribute('data-region-id'));
     };
 
     const handleLeave = () => {
-      setHoveredRegion(null);
+        setHoveredRegion(null);
     };
 
-    // 直接在SVG容器上附加事件监听器
-    svgContainer.addEventListener('click', handleClick);
-    svgContainer.addEventListener('mouseover', handleHover);
-    svgContainer.addEventListener('mouseout', handleLeave);
+    const paths = svgContainer.querySelectorAll('path[data-region-id]');
+    
+    paths.forEach(path => {
+        path.addEventListener('click', handleClick);
+        path.addEventListener('mouseover', handleHover);
+        path.addEventListener('mouseout', handleLeave);
+    });
 
     return () => {
-      svgContainer.removeEventListener('click', handleClick);
-      svgContainer.removeEventListener('mouseover', handleHover);
-      svgContainer.removeEventListener('mouseout', handleLeave);
+        paths.forEach(path => {
+            path.removeEventListener('click', handleClick);
+            path.removeEventListener('mouseover', handleHover);
+            path.removeEventListener('mouseout', handleLeave);
+        });
     };
   }, [svgContent, regions, onRegionClick, studentsByRegion, onShowList]);
 
@@ -772,6 +691,7 @@ export default function InteractiveMap({
   // 使用 ref 来存储拖动中的位置和基础位置，避免频繁更新状态
   const draggingPositionsRef = useRef<Record<string, CardPosition>>({})
   const baseCardPositionsRef = useRef<Record<string, CardPosition>>({})
+  const cardRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
   
   // 同步 baseCardPositionsRef 和 cardPositions
   useEffect(() => {
@@ -780,97 +700,64 @@ export default function InteractiveMap({
   
   useLayoutEffect(() => {
     if (!mapContainerRef.current) return
-
-    let frameId: number | null = null
-    let timeoutId: number | null = null
-
-    const measure = () => {
+  
+    const observer = new ResizeObserver(entries => {
       if (!mapContainerRef.current) return
-
       const containerRect = mapContainerRef.current.getBoundingClientRect()
       if (containerRect.width === 0 || containerRect.height === 0) {
         return
       }
-
-      const innerCards = mapContainerRef.current.querySelectorAll('[data-card-id] [data-inner-card="true"]')
-      if (!innerCards.length) {
-        return
-      }
-
-      const updates: Record<string, { width: number; height: number }> = {}
-
-      innerCards.forEach(innerCard => {
-        const outerCard = innerCard.closest('[data-card-id]')
-        if (!outerCard) return
-
-        const regionId = outerCard.getAttribute('data-card-id')
-        if (!regionId || !studentsByRegion[regionId]) {
-          return
+  
+      let hasChanges = false
+      const newDimensions: Record<string, { width: number; height: number }> = {}
+  
+      for (const entry of entries) {
+        // Find the regionId associated with this element
+        let current: HTMLElement | null = entry.target as HTMLElement
+        let regionId: string | null = null
+        while (current && !regionId) {
+          regionId = current.getAttribute('data-card-id')
+          current = current.parentElement
         }
-
-        const rect = innerCard.getBoundingClientRect()
-        if (rect.width === 0 || rect.height === 0) {
-          return
-        }
-
-        updates[regionId] = {
-          width: (rect.width / containerRect.width) * 100,
-          height: (rect.height / containerRect.height) * 100
-        }
-      })
-
-      if (Object.keys(updates).length === 0) {
-        return
-      }
-
-      setCardDimensions(prev => {
-        let changed = false
-        const next = { ...prev }
-
-        // 移除已经不存在的地区
-        Object.keys(next).forEach(regionId => {
-          if (!studentsByRegion[regionId]) {
-            delete next[regionId]
-            changed = true
+  
+        if (regionId) {
+          const rect = entry.target.getBoundingClientRect()
+          if (rect.width > 0 && rect.height > 0) {
+            newDimensions[regionId] = {
+              width: (rect.width / containerRect.width) * 100,
+              height: (rect.height / containerRect.height) * 100,
+            }
+            hasChanges = true
           }
-        })
-
-        Object.entries(updates).forEach(([regionId, dims]) => {
-          const prevDims = next[regionId]
-          if (
-            !prevDims ||
-            Math.abs(prevDims.width - dims.width) > 0.1 ||
-            Math.abs(prevDims.height - dims.height) > 0.1
-          ) {
-            next[regionId] = dims
-            changed = true
-          }
-        })
-
-        return changed ? next : prev
-      })
-    }
-
-    const scheduleMeasure = () => {
-      if (frameId !== null) {
-        cancelAnimationFrame(frameId)
+        }
       }
-      frameId = requestAnimationFrame(measure)
-    }
-
-    scheduleMeasure()
-    timeoutId = window.setTimeout(scheduleMeasure, 150)
-    window.addEventListener('resize', scheduleMeasure)
-
+  
+      if (hasChanges) {
+        setCardDimensions(prev => {
+          const next = { ...prev, ...newDimensions }
+          // Simple equality check; could be improved
+          if (JSON.stringify(prev) !== JSON.stringify(next)) {
+            return next
+          }
+          return prev
+        })
+      }
+    })
+  
+    // Observe all rendered cards
+    const renderedCardIds = Object.keys(studentsByRegion)
+    renderedCardIds.forEach(regionId => {
+      const cardEl = cardRefs.current.get(regionId)
+      const innerCard = cardEl?.querySelector('[data-inner-card="true"]')
+      if (innerCard) {
+        observer.observe(innerCard)
+      }
+    })
+  
     return () => {
-      if (frameId !== null) {
-        cancelAnimationFrame(frameId)
-      }
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId)
-      }
-      window.removeEventListener('resize', scheduleMeasure)
+      observer.disconnect()
     }
+    // Rerun when the list of students changes
   }, [studentsByRegion, scale])
   
   // 处理卡片拖拽 - 接收增量而不是绝对位置
@@ -933,481 +820,165 @@ export default function InteractiveMap({
     }
   }, [country, regionPositions])
 
-  // 计算连线终点的函数
-  const calculateLineEndpoints = useCallback(() => {
-    if (!svgContainerRef.current || !mapContainerRef.current || !svgContent || Object.keys(regionPositions).length === 0) {
+  const calculateLineData = useCallback(() => {
+    if (!svgContainerRef.current || !mapContainerRef.current || !lineSvgRef.current || !svgContent || Object.keys(regionPositions).length === 0 || Object.keys(cardDimensions).length === 0) {
+      setLineData({}) // Clear lines if not ready
       return
     }
 
-    const newEndpoints: Record<string, { x: number; y: number }> = {}
-    
-    // 从 DOM 中获取实际的 viewBox 尺寸，确保与渲染时一致
-    let actualSvgViewBoxWidth = svgViewBox.width || 1200
-    let actualSvgViewBoxHeight = svgViewBox.height || 900
-    
-    if (svgContainerRef.current) {
-      const mapSvg = svgContainerRef.current.querySelector('svg') as SVGSVGElement | null
-      if (mapSvg) {
-        const viewBox = mapSvg.viewBox.baseVal
-        if (viewBox.width > 0 && viewBox.height > 0) {
-          actualSvgViewBoxWidth = viewBox.width
-          actualSvgViewBoxHeight = viewBox.height
-        }
-      }
+    const containerRect = mapContainerRef.current.getBoundingClientRect()
+    if (containerRect.width === 0 || containerRect.height === 0) {
+      return
     }
+  
+    // 使用固定的SVG viewBox尺寸进行计算，确保一致性
+    const fixedSvgWidth = svgViewBox.width || 1200
+    const fixedSvgHeight = svgViewBox.height || 900
     
-    const fixedSvgWidth = actualSvgViewBoxWidth
-    const fixedSvgHeight = actualSvgViewBoxHeight
-
-    Object.entries(regionPositions).forEach(([regionId, position]) => {
-      // 获取卡片位置（优先使用拖动中的位置）
-      const draggingPos = draggingPositionsRef.current[regionId]
-      const savedPos = cardPositions[regionId] || { x: 0, y: 0 }
-      const cardPos = draggingPos || savedPos
+    const newLineData: Record<string, { start: { x: number; y: number }; end: { x: number; y: number } }> = {}
+  
+    Object.entries(studentsByRegion).forEach(([regionId]) => {
+      const position = regionPositions[regionId]
+      const dimensions = cardDimensions[regionId]
+      if (!position || !dimensions) {
+        return
+      }
+  
+      const cardPos = cardPositions[regionId] || { x: 0, y: 0 }
+      // 卡片最终位置（百分比）
       const finalX = position.x + cardPos.x
       const finalY = position.y + cardPos.y
-
-      // 从DOM中获取区域路径的实际边界框，计算准确的连线终点
-      const regionIdVariants = [
-        regionId,
-        regionId.replace('CN-', ''),
-        regionId.replace('US-', ''),
-        `CN-${regionId}`,
-        `US-${regionId}`
-      ]
-
-      let lineEndX = position.x
-      let lineEndY = position.y
-
-      for (const variantId of regionIdVariants) {
-        const pathElement = svgContainerRef.current!.querySelector(
-          `path[data-region-id="${variantId}"], path[id="${variantId}"]`
-        ) as SVGPathElement | null
-
-        if (!pathElement) {
-          continue
+      
+      // 区域中心位置（百分比）
+      const lineEndX = position.x
+      const lineEndY = position.y
+      
+      // 卡片尺寸（百分比）
+      const cardWidth = dimensions.width
+      const cardHeight = dimensions.height
+      
+      // 计算卡片在容器中的像素位置和尺寸
+      const cardLeftPx = (finalX / 100) * containerRect.width
+      const cardTopPx = (finalY / 100) * containerRect.height
+      const cardWidthPx = (cardWidth / 100) * containerRect.width
+      const cardHeightPx = (cardHeight / 100) * containerRect.height
+      
+      // 卡片中心点（像素）
+      const cardCenterX = cardLeftPx + cardWidthPx / 2
+      const cardCenterY = cardTopPx + cardHeightPx / 2
+      
+      // 区域中心点（像素）
+      const regionCenterX = (lineEndX / 100) * containerRect.width
+      const regionCenterY = (lineEndY / 100) * containerRect.height
+      
+      // 计算向量
+      const dx = regionCenterX - cardCenterX
+      const dy = regionCenterY - cardCenterY
+      
+      let lineStartX = 0
+      let lineStartY = 0
+      
+      // 检查向量是否为零（不太可能，但为了安全）
+      if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) {
+        // 如果重合，直接使用卡片中心
+        lineStartX = cardCenterX
+        lineStartY = cardCenterY
+      } else {
+        // 计算与卡片四个边的交点
+        const intersections = []
+        
+        // 上边
+        const tTop = (cardTopPx - cardCenterY) / dy
+        if (tTop >= 0) {
+          const x = cardCenterX + tTop * dx
+          if (x >= cardLeftPx && x <= cardLeftPx + cardWidthPx) {
+            intersections.push({ x, y: cardTopPx })
+          }
         }
-
-        try {
-          const svgElement = pathElement.ownerSVGElement
-          if (!svgElement) {
-            continue
+        
+        // 下边
+        const tBottom = (cardTopPx + cardHeightPx - cardCenterY) / dy
+        if (tBottom >= 0) {
+          const x = cardCenterX + tBottom * dx
+          if (x >= cardLeftPx && x <= cardLeftPx + cardWidthPx) {
+            intersections.push({ x, y: cardTopPx + cardHeightPx })
           }
-
-          const bbox = pathElement.getBBox()
-          const viewBox = svgElement.viewBox.baseVal
-          const svgViewBoxWidth = viewBox.width || fixedSvgWidth
-          const svgViewBoxHeight = viewBox.height || fixedSvgHeight
-
-          if (bbox.width === 0 || bbox.height === 0 || svgViewBoxWidth === 0 || svgViewBoxHeight === 0) {
-            continue
+        }
+        
+        // 左边
+        const tLeft = (cardLeftPx - cardCenterX) / dx
+        if (tLeft >= 0) {
+          const y = cardCenterY + tLeft * dy
+          if (y >= cardTopPx && y <= cardTopPx + cardHeightPx) {
+            intersections.push({ x: cardLeftPx, y })
           }
-
-          const regionPercentX = position.x
-          const regionPercentY = position.y
-
-          const regionCenterX = (regionPercentX / 100) * svgViewBoxWidth
-          const regionCenterY = (regionPercentY / 100) * svgViewBoxHeight
-
-          lineEndX = regionPercentX
-          lineEndY = regionPercentY
-
-          const cardCenterX = (finalX / 100) * svgViewBoxWidth
-          const cardCenterY = (finalY / 100) * svgViewBoxHeight
-
-          const dirX = cardCenterX - regionCenterX
-          const dirY = cardCenterY - regionCenterY
-          const dirLength = Math.sqrt(dirX * dirX + dirY * dirY)
-
-          let endpointFound = false
-
-          const geometryElement = pathElement as unknown as SVGGeometryElement & {
-            isPointInFill?: (point: DOMPoint) => boolean
+        }
+        
+        // 右边
+        const tRight = (cardLeftPx + cardWidthPx - cardCenterX) / dx
+        if (tRight >= 0) {
+          const y = cardCenterY + tRight * dy
+          if (y >= cardTopPx && y <= cardTopPx + cardHeightPx) {
+            intersections.push({ x: cardLeftPx + cardWidthPx, y })
           }
-
-          const svgPoint = svgElement.createSVGPoint()
-          const isInsideFill = (x: number, y: number) => {
-            if (!geometryElement.isPointInFill) {
-              return false
-            }
-            // 确保坐标在 SVG viewBox 坐标系统中
-            svgPoint.x = x
-            svgPoint.y = y
-            try {
-              const result = geometryElement.isPointInFill(svgPoint)
-              // 添加详细日志以便调试
-              return result
-            } catch (err) {
-              return false
-            }
+        }
+        
+        // 找到距离区域中心最近的交点
+        let minDistance = Infinity
+        let closestPoint = null
+        
+        for (const p of intersections) {
+          const dist = Math.sqrt(Math.pow(p.x - regionCenterX, 2) + Math.pow(p.y - regionCenterY, 2))
+          if (dist < minDistance) {
+            minDistance = dist
+            closestPoint = p
           }
-
-          if (geometryElement.isPointInFill && dirLength > 0) {
-            // 简化策略：优先使用区域中心，确保端点始终在区域内
-            let finalPointX = regionCenterX
-            let finalPointY = regionCenterY
-            
-            // 如果区域中心在填充内，直接使用
-            if (isInsideFill(regionCenterX, regionCenterY)) {
-              // 区域中心可用，直接使用
-              finalPointX = regionCenterX
-              finalPointY = regionCenterY
-            } else {
-              // 区域中心不在填充内，寻找最近的填充内点
-              let bestPoint: { x: number; y: number } | null = null
-              let bestDistance = Number.POSITIVE_INFINITY
-
-              const maxDimension = Math.max(bbox.width, bbox.height)
-              const baseRadius = Math.max(1, maxDimension * 0.01)
-              const maxRadius = maxDimension * 0.3
-
-              // 从中心向外搜索
-              for (let radius = baseRadius; radius <= maxRadius; radius += baseRadius) {
-                const directions = Math.max(16, Math.min(32, Math.floor(radius / 1)))
-                for (let i = 0; i < directions; i++) {
-                  const angle = (i / directions) * Math.PI * 2
-                  const testX = regionCenterX + Math.cos(angle) * radius
-                  const testY = regionCenterY + Math.sin(angle) * radius
-                  if (
-                    testX >= bbox.x &&
-                    testX <= bbox.x + bbox.width &&
-                    testY >= bbox.y &&
-                    testY <= bbox.y + bbox.height &&
-                    isInsideFill(testX, testY)
-                  ) {
-                    const dist = Math.sqrt(
-                      (testX - regionCenterX) ** 2 + (testY - regionCenterY) ** 2
-                    )
-                    if (dist < bestDistance) {
-                      bestDistance = dist
-                      bestPoint = { x: testX, y: testY }
-                    }
-                  }
-                }
-                if (bestPoint) {
-                  break
-                }
-              }
-
-              // 如果还是没找到，使用网格搜索
-              if (!bestPoint) {
-                const gridSize = 16
-                for (let ix = 0; ix < gridSize; ix++) {
-                  for (let iy = 0; iy < gridSize; iy++) {
-                    const testX = bbox.x + ((ix + 0.5) / gridSize) * bbox.width
-                    const testY = bbox.y + ((iy + 0.5) / gridSize) * bbox.height
-                    if (isInsideFill(testX, testY)) {
-                      const dist = Math.sqrt(
-                        (testX - regionCenterX) ** 2 + (testY - regionCenterY) ** 2
-                      )
-                      if (dist < bestDistance) {
-                        bestDistance = dist
-                        bestPoint = { x: testX, y: testY }
-                      }
-                    }
-                  }
-                }
-              }
-
-              if (bestPoint) {
-                finalPointX = bestPoint.x
-                finalPointY = bestPoint.y
-              } else {
-                // 最后回退到 bbox 中心
-                const bboxCenterX = bbox.x + bbox.width / 2
-                const bboxCenterY = bbox.y + bbox.height / 2
-                if (isInsideFill(bboxCenterX, bboxCenterY)) {
-                  finalPointX = bboxCenterX
-                  finalPointY = bboxCenterY
-                }
-              }
-            }
-            
-            // 最终验证：确保端点在填充内
-            if (!isInsideFill(finalPointX, finalPointY)) {
-              // 如果仍然不在填充内，尝试 bbox 中心
-              const bboxCenterX = bbox.x + bbox.width / 2
-              const bboxCenterY = bbox.y + bbox.height / 2
-              if (isInsideFill(bboxCenterX, bboxCenterY)) {
-                finalPointX = bboxCenterX
-                finalPointY = bboxCenterY
-              }
-            }
-            
-            const finalCheck = isInsideFill(finalPointX, finalPointY)
-            const finalPercentX = (finalPointX / svgViewBoxWidth) * 100
-            const finalPercentY = (finalPointY / svgViewBoxHeight) * 100
-
-            // 如果最终检查失败，使用区域中心作为回退
-            if (!finalCheck) {
-              lineEndX = regionPercentX
-              lineEndY = regionPercentY
-            } else {
-              lineEndX = finalPercentX
-              lineEndY = finalPercentY
-            }
-            endpointFound = true
-          }
-
-          if (!endpointFound && dirLength > 0) {
-            const left = bbox.x
-            const right = bbox.x + bbox.width
-            const top = bbox.y
-            const bottom = bbox.y + bbox.height
-
-            const candidates: number[] = []
-
-            if (dirX !== 0) {
-              const tRight = (right - regionCenterX) / dirX
-              const yAtRight = regionCenterY + dirY * tRight
-              if (tRight > 0 && yAtRight >= top && yAtRight <= bottom) {
-                candidates.push(tRight)
-              }
-
-              const tLeft = (left - regionCenterX) / dirX
-              const yAtLeft = regionCenterY + dirY * tLeft
-              if (tLeft > 0 && yAtLeft >= top && yAtLeft <= bottom) {
-                candidates.push(tLeft)
-              }
-            }
-
-            if (dirY !== 0) {
-              const tBottom = (bottom - regionCenterY) / dirY
-              const xAtBottom = regionCenterX + dirX * tBottom
-              if (tBottom > 0 && xAtBottom >= left && xAtBottom <= right) {
-                candidates.push(tBottom)
-              }
-
-              const tTop = (top - regionCenterY) / dirY
-              const xAtTop = regionCenterX + dirX * tTop
-              if (tTop > 0 && xAtTop >= left && xAtTop <= right) {
-                candidates.push(tTop)
-              }
-            }
-
-            if (candidates.length > 0) {
-              const tEdge = Math.min(...candidates)
-              let backoff = 0.96
-              let intersectX = regionCenterX + dirX * tEdge * backoff
-              let intersectY = regionCenterY + dirY * tEdge * backoff
-
-              // 如果 isPointInFill 可用，验证并调整
-              if (geometryElement.isPointInFill) {
-                for (let i = 0; i < 10; i++) {
-                  if (isInsideFill(intersectX, intersectY)) {
-                    break
-                  }
-                  backoff *= 0.95
-                  intersectX = regionCenterX + dirX * tEdge * backoff
-                  intersectY = regionCenterY + dirY * tEdge * backoff
-                }
-                // 如果仍然不在填充内，使用区域中心（如果可用）
-                if (!isInsideFill(intersectX, intersectY)) {
-                  if (isInsideFill(regionCenterX, regionCenterY)) {
-                    intersectX = regionCenterX
-                    intersectY = regionCenterY
-                  } else {
-                    // 使用 bbox 中心
-                    const bboxCenterX = bbox.x + bbox.width / 2
-                    const bboxCenterY = bbox.y + bbox.height / 2
-                    if (isInsideFill(bboxCenterX, bboxCenterY)) {
-                      intersectX = bboxCenterX
-                      intersectY = bboxCenterY
-                    }
-                  }
-                }
-              }
-
-              lineEndX = (intersectX / svgViewBoxWidth) * 100
-              lineEndY = (intersectY / svgViewBoxHeight) * 100
-              endpointFound = true
-            }
-          }
-
-          if (!endpointFound && dirLength > 0 && typeof geometryElement.getTotalLength === 'function' && typeof geometryElement.getPointAtLength === 'function') {
-            const totalLength = geometryElement.getTotalLength()
-            if (totalLength > 0) {
-              const sampleCount = Math.min(Math.max(Math.floor(totalLength / 8), 80), 600)
-              const dirNormX = dirX / dirLength
-              const dirNormY = dirY / dirLength
-
-              let bestPoint: DOMPoint | null = null
-              let bestScore = Number.POSITIVE_INFINITY
-
-              for (let i = 0; i <= sampleCount; i++) {
-                const t = i / sampleCount
-                const point = geometryElement.getPointAtLength(totalLength * t)
-                const dxPoint = point.x - regionCenterX
-                const dyPoint = point.y - regionCenterY
-
-                const projection = dxPoint * dirNormX + dyPoint * dirNormY
-                if (projection <= 0) {
-                  continue
-                }
-
-                const perpendicular = Math.abs(dxPoint * dirNormY - dyPoint * dirNormX)
-
-                const score = perpendicular * 1000 + projection
-                if (score < bestScore) {
-                  bestScore = score
-                  bestPoint = point
-                }
-              }
-
-              if (bestPoint) {
-                let backoff = 0.92
-                let targetX = regionCenterX + (bestPoint.x - regionCenterX) * backoff
-                let targetY = regionCenterY + (bestPoint.y - regionCenterY) * backoff
-
-                if (geometryElement.isPointInFill) {
-                  for (let i = 0; i < 10; i++) {
-                    if (isInsideFill(targetX, targetY)) {
-                      break
-                    }
-                    backoff *= 0.95
-                    targetX = regionCenterX + (bestPoint.x - regionCenterX) * backoff
-                    targetY = regionCenterY + (bestPoint.y - regionCenterY) * backoff
-                  }
-                  // 如果仍然不在填充内，使用区域中心（如果可用）
-                  if (!isInsideFill(targetX, targetY)) {
-                    if (isInsideFill(regionCenterX, regionCenterY)) {
-                      targetX = regionCenterX
-                      targetY = regionCenterY
-                    } else {
-                      // 使用 bbox 中心
-                      const bboxCenterX = bbox.x + bbox.width / 2
-                      const bboxCenterY = bbox.y + bbox.height / 2
-                      if (isInsideFill(bboxCenterX, bboxCenterY)) {
-                        targetX = bboxCenterX
-                        targetY = bboxCenterY
-                      }
-                    }
-                  }
-                }
-
-                lineEndX = (targetX / svgViewBoxWidth) * 100
-                lineEndY = (targetY / svgViewBoxHeight) * 100
-                endpointFound = true
-              }
-            }
-          }
-
-          if (!endpointFound && dirLength > 0) {
-            const left = bbox.x
-            const right = bbox.x + bbox.width
-            const top = bbox.y
-            const bottom = bbox.y + bbox.height
-
-            const candidates: number[] = []
-
-            if (dirX !== 0) {
-              const tRight = (right - regionCenterX) / dirX
-              const yAtRight = regionCenterY + dirY * tRight
-              if (tRight > 0 && yAtRight >= top && yAtRight <= bottom) {
-                candidates.push(tRight)
-              }
-
-              const tLeft = (left - regionCenterX) / dirX
-              const yAtLeft = regionCenterY + dirY * tLeft
-              if (tLeft > 0 && yAtLeft >= top && yAtLeft <= bottom) {
-                candidates.push(tLeft)
-              }
-            }
-
-            if (dirY !== 0) {
-              const tBottom = (bottom - regionCenterY) / dirY
-              const xAtBottom = regionCenterX + dirX * tBottom
-              if (tBottom > 0 && xAtBottom >= left && xAtBottom <= right) {
-                candidates.push(tBottom)
-              }
-
-              const tTop = (top - regionCenterY) / dirY
-              const xAtTop = regionCenterX + dirX * tTop
-              if (tTop > 0 && xAtTop >= left && xAtTop <= right) {
-                candidates.push(tTop)
-              }
-            }
-
-            if (candidates.length > 0) {
-              const tEdge = Math.min(...candidates)
-              let backoff = 0.92
-              let intersectX = regionCenterX + dirX * tEdge * backoff
-              let intersectY = regionCenterY + dirY * tEdge * backoff
-
-              if (geometryElement.isPointInFill) {
-                for (let i = 0; i < 8; i++) {
-                  if (isInsideFill(intersectX, intersectY)) {
-                    break
-                  }
-                  backoff *= 0.95
-                  intersectX = regionCenterX + dirX * tEdge * backoff
-                  intersectY = regionCenterY + dirY * tEdge * backoff
-                }
-                if (!isInsideFill(intersectX, intersectY)) {
-                  if (isInsideFill(regionCenterX, regionCenterY)) {
-                    intersectX = regionCenterX
-                    intersectY = regionCenterY
-                  } else {
-                    const bboxCenterX = bbox.x + bbox.width / 2
-                    const bboxCenterY = bbox.y + bbox.height / 2
-                    if (isInsideFill(bboxCenterX, bboxCenterY)) {
-                      intersectX = bboxCenterX
-                      intersectY = bboxCenterY
-                    }
-                  }
-                }
-              }
-
-              lineEndX = (intersectX / svgViewBoxWidth) * 100
-              lineEndY = (intersectY / svgViewBoxHeight) * 100
-              endpointFound = true
-            }
-          }
-
-          if (!endpointFound) {
-            lineEndX = regionPercentX
-            lineEndY = regionPercentY
-          }
-
-          lineEndX = Math.max(0, Math.min(100, lineEndX))
-          lineEndY = Math.max(0, Math.min(100, lineEndY))
-
-          newEndpoints[regionId] = { x: lineEndX, y: lineEndY }
-          break
-        } catch (error) {
-          newEndpoints[regionId] = { x: position.x, y: position.y }
+        }
+        
+        if (closestPoint) {
+          lineStartX = closestPoint.x
+          lineStartY = closestPoint.y
+        } else {
+          // 如果没有找到交点（不太可能），回退到卡片中心
+          lineStartX = cardCenterX
+          lineStartY = cardCenterY
         }
       }
+      
+      // 将像素坐标转换回百分比，以便在SVG中使用
+      const finalLineStartX = (lineStartX / containerRect.width) * 100
+      const finalLineStartY = (lineStartY / containerRect.height) * 100
+      
+      // 确保没有NaN值
+      if (isNaN(finalLineStartX) || isNaN(finalLineStartY) || isNaN(lineEndX) || isNaN(lineEndY)) {
+        return
+      }
 
-      if (!newEndpoints[regionId]) {
-        newEndpoints[regionId] = { x: lineEndX, y: lineEndY }
+      newLineData[regionId] = {
+        start: { x: finalLineStartX, y: finalLineStartY },
+        end: { x: lineEndX, y: lineEndY },
       }
     })
-
-    setLineEndpoints(newEndpoints)
-  }, [svgContent, regionPositions, cardPositions, svgViewBox, scale, cardDimensions])
-
-  // robustly calculate line endpoints only when all necessary data and DOM elements are ready.
+    
+    setLineData(newLineData)
+  }, [svgContent, svgViewBox, regionPositions, cardPositions, cardDimensions, studentsByRegion, scale])
+  
   useEffect(() => {
-    const renderedStudentRegions = Object.keys(studentsByRegion);
-
+    const renderedStudentRegions = Object.keys(studentsByRegion)
     if (renderedStudentRegions.length === 0) {
-      setLineEndpoints({});
-      return;
+      setLineData({})
+      return
     }
-
+  
     const allCardsMeasured = renderedStudentRegions.every(
       (regionId) => cardDimensions[regionId] && cardDimensions[regionId].width > 0
-    );
-
-    const mapReady = svgContent && Object.keys(regionPositions).length > 0;
-
+    )
+  
+    const mapReady = svgContent && Object.keys(regionPositions).length > 0
+  
     if (mapReady && allCardsMeasured) {
-      const animationFrameId = requestAnimationFrame(() => {
-        calculateLineEndpoints();
-      });
-
-      return () => cancelAnimationFrame(animationFrameId);
+      const animationFrameId = requestAnimationFrame(calculateLineData)
+      return () => cancelAnimationFrame(animationFrameId)
     }
   }, [
     cardDimensions,
@@ -1416,12 +987,8 @@ export default function InteractiveMap({
     svgContent,
     cardPositions,
     scale,
-    calculateLineEndpoints,
-  ]);
-
-  // 检查连线 SVG 容器的 DOM 状态
-  useEffect(() => {
-  }, [studentsByRegion, lineEndpoints, scale, svgViewBox])
+    calculateLineData,
+  ])
 
   // 缩放控制
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.2, 3))
@@ -1432,14 +999,14 @@ export default function InteractiveMap({
   const handleExport = useCallback(async () => {
     if (!mapContainerRef.current) return;
     setExporting(true);
-
+  
     try {
       // 强制重绘以确保所有样式都已应用
       await new Promise(resolve => requestAnimationFrame(resolve));
-
+  
       const canvas = await html2canvas(mapContainerRef.current, {
         backgroundColor: '#f5f5f5',
-        scale: 3,
+        scale: 3, 
         logging: false,
         useCORS: true,
         onclone: (clonedDoc) => {
@@ -1448,7 +1015,7 @@ export default function InteractiveMap({
           if (controlButtons) {
             controlButtons.remove();
           }
-
+  
           // 修正卡片和文本的渲染问题
           const studentCards = clonedDoc.querySelectorAll('[data-card-id]');
           studentCards.forEach((card) => {
@@ -1456,32 +1023,52 @@ export default function InteractiveMap({
             // 确保transform和transform-origin在导出时不会导致模糊
             cardElement.style.transform = 'translate(-50%, -50%) scale(1)';
             cardElement.style.transformOrigin = 'center center';
-
+  
             // 优化所有文本元素的渲染
             const textElements = cardElement.querySelectorAll('p, div, span, h3, h4');
             textElements.forEach((textEl) => {
               const el = textEl as HTMLElement;
-              el.style.fontSmoothing = 'antialiased';
+              (el.style as any).WebkitFontSmoothing = 'antialiased';
               el.style.textRendering = 'optimizeLegibility';
               el.style.lineHeight = '1.5';
               el.style.verticalAlign = 'middle';
               el.style.textShadow = '0 0 1px rgba(0,0,0,0.1)';
             });
           });
-
+  
           // 确保SVG内的文本也得到优化
           const svgElements = clonedDoc.querySelectorAll('svg');
           svgElements.forEach(svg => {
             const textNodes = svg.querySelectorAll('text');
             textNodes.forEach(text => {
-              text.style.fontSmoothing = 'antialiased';
+              (text.style as any).WebkitFontSmoothing = 'antialiased';
               text.style.textRendering = 'optimizeLegibility';
               text.style.letterSpacing = '0.5px'; // 微调字间距
             });
           });
+
+          // Get the main map SVG and the line SVG
+        const mainMapSvg = clonedDoc.querySelector('[data-export="true"] svg');
+        const lineSvg = clonedDoc.querySelector('[data-line-svg="true"]');
+        
+        if (mainMapSvg && lineSvg) {
+            // Get all the line elements from the line SVG
+            const lineElements = lineSvg.querySelectorAll('g');
+            
+            // Append the line elements to the main map SVG
+            lineElements.forEach(lineElement => {
+                mainMapSvg.appendChild(lineElement.cloneNode(true));
+            });
+            
+            // Remove the line SVG container
+            const lineSvgContainer = clonedDoc.querySelector('.absolute.inset-0.flex.items-center.justify-center.p-8.pointer-events-none');
+            if (lineSvgContainer) {
+                lineSvgContainer.remove();
+            }
+        }
         },
       });
-
+  
         // 下载图片
         const link = document.createElement('a');
         const timestamp = new Date().toISOString().split('T')[0];
@@ -1591,78 +1178,13 @@ export default function InteractiveMap({
                   const finalX = position.x + cardPos.x
                   const finalY = position.y + cardPos.y
                   
-                  const cardContainer = document.querySelector(`[data-card-id="${regionId}"]`)
-                  const storedDimensions = cardDimensions[regionId]
-                  let cardWidth = storedDimensions?.width ?? DEFAULT_CARD_WIDTH_PERCENT
-                  let cardHeight = storedDimensions?.height ?? DEFAULT_CARD_HEIGHT_PERCENT
+                  const line = lineData[regionId]
+                  if (!line) return null
                   
-                  if (cardContainer && mapContainerRef.current) {
-                    const innerCard = cardContainer.querySelector('[data-inner-card="true"]') as HTMLElement | null
-                    if (innerCard) {
-                      const innerRect = innerCard.getBoundingClientRect()
-                      const containerRect = mapContainerRef.current.getBoundingClientRect()
-                      if (containerRect.width > 0 && containerRect.height > 0) {
-                        const measuredWidth = (innerRect.width / containerRect.width) * 100
-                        const measuredHeight = (innerRect.height / containerRect.height) * 100
-                        if (measuredWidth > 0 && measuredHeight > 0) {
-                          cardWidth = measuredWidth
-                          cardHeight = measuredHeight
-                        }
-                      }
-                    }
-                  }
-                  
-                  // 计算卡片边界
-                  const cardLeft = finalX - cardWidth / 2
-                  const cardRight = finalX + cardWidth / 2
-                  const cardTop = finalY - cardHeight / 2
-                  const cardBottom = finalY + cardHeight / 2
-                  
-                  // 获取连线终点
-                  const endpoint = lineEndpoints[regionId] || { x: position.x, y: position.y }
-                  const lineEndXPercent = endpoint.x
-                  const lineEndYPercent = endpoint.y
-                  const lineEndX = (lineEndXPercent / 100) * fixedSvgWidth
-                  const lineEndY = (lineEndYPercent / 100) * fixedSvgHeight
-                  
-                  // 计算从卡片中心到连线终点的方向向量（百分比坐标）
-                  const dxToEndpoint = lineEndXPercent - finalX
-                  const dyToEndpoint = lineEndYPercent - finalY
-                  
-                  let lineStartPercentX = finalX
-                  let lineStartPercentY = finalY
-
-                  if (dxToEndpoint !== 0 || dyToEndpoint !== 0) {
-                    const halfWidth = cardWidth / 2
-                    const halfHeight = cardHeight / 2
-                    
-                    // Handle cases where card dimensions are not yet available
-                    if (halfWidth > 0 && halfHeight > 0) {
-                      if (dxToEndpoint === 0) { // Vertical line
-                          lineStartPercentY += (dyToEndpoint > 0 ? 1 : -1) * halfHeight
-                      } else if (dyToEndpoint === 0) { // Horizontal line
-                          lineStartPercentX += (dxToEndpoint > 0 ? 1 : -1) * halfWidth
-                      } else {
-                          const slope = dyToEndpoint / dxToEndpoint
-                          const cardDiagonalSlope = halfHeight / halfWidth
-
-                          if (Math.abs(slope) < cardDiagonalSlope) {
-                              // Intersects with left or right edge
-                              const sign = (dxToEndpoint > 0 ? 1 : -1)
-                              lineStartPercentX = finalX + sign * halfWidth
-                              lineStartPercentY = finalY + sign * halfWidth * slope
-                          } else {
-                              // Intersects with top or bottom edge
-                              const sign = (dyToEndpoint > 0 ? 1 : -1)
-                              lineStartPercentY = finalY + sign * halfHeight
-                              lineStartPercentX = finalX + sign * halfHeight / slope
-                          }
-                      }
-                    }
-                  }
-                  
-                  const lineStartX = (lineStartPercentX / 100) * fixedSvgWidth
-                  const lineStartY = (lineStartPercentY / 100) * fixedSvgHeight
+                  const lineStartX = (line.start.x / 100) * fixedSvgWidth
+                  const lineStartY = (line.start.y / 100) * fixedSvgHeight
+                  const lineEndX = (line.end.x / 100) * fixedSvgWidth
+                  const lineEndY = (line.end.y / 100) * fixedSvgHeight
                   
                   // 获取区域颜色
                   const regionColor = getRegionColor(regionId)
@@ -1670,22 +1192,6 @@ export default function InteractiveMap({
                   if (!lineColor.startsWith('#')) {
                     const colorConfig = CARD_COLORS.find(c => c.value === lineColor)
                     lineColor = colorConfig ? colorConfig.hex : '#0066FF'
-                  }
-
-                  // 调试日志：每条连线的坐标
-                  const lineLength = Math.sqrt(
-                    Math.pow(lineEndX - lineStartX, 2) + Math.pow(lineEndY - lineStartY, 2)
-                  )
-                  
-                  // 检查坐标是否在 viewBox 范围内
-                  const startInViewBox = lineStartX >= 0 && lineStartX <= fixedSvgWidth && lineStartY >= 0 && lineStartY <= fixedSvgHeight
-                  const endInViewBox = lineEndX >= 0 && lineEndX <= fixedSvgWidth && lineEndY >= 0 && lineEndY <= fixedSvgHeight
-                  const hasValidCoords = !isNaN(lineStartX) && !isNaN(lineStartY) && !isNaN(lineEndX) && !isNaN(lineEndY)
-                  const willRender = lineLength > 0 && hasValidCoords && startInViewBox && endInViewBox
-                  
-                  // 如果坐标无效或不在 viewBox 范围内，不渲染连线
-                  if (!willRender) {
-                    return null
                   }
 
                   return (
@@ -1774,38 +1280,37 @@ export default function InteractiveMap({
           
           // 卡片渲染
           return (
-            <div key={regionId}>
-              {/* 卡片 */}
-              <div
-                data-card-id={regionId}
-                className="absolute pointer-events-auto transition-all duration-300"
-                style={{
-                  left: `${finalX}%`,
-                  top: `${finalY}%`,
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 31
-                }}
-              >
-                {regionStudents.length >= 4 ? (
-                  <div data-inner-card="true">
-                    <AggregatedCard
-                      count={regionStudents.length}
-                      onClick={() => onShowList(region, regionStudents)}
-                    />
-                  </div>
-                ) : (
-                  <div data-inner-card="true">
-                    <DraggableStudentCard
-                      students={regionStudents}
-                      regionName={region.name}
-                      position={position}
-                      onEdit={onStudentEdit}
-                      onDelete={onStudentDelete}
-                      onDrag={(dx, dy) => handleCardDrag(regionId, dx, dy)}
-                    />
-                  </div>
-                )}
-              </div>
+            <div
+              key={regionId}
+              ref={el => cardRefs.current.set(regionId, el)}
+              data-card-id={regionId}
+              className="absolute pointer-events-auto transition-all duration-300"
+              style={{
+                left: `${finalX}%`,
+                top: `${finalY}%`,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 31,
+              }}
+            >
+              {regionStudents.length >= 4 ? (
+                <div data-inner-card="true">
+                  <AggregatedCard
+                    count={regionStudents.length}
+                    onClick={() => onShowList(region, regionStudents)}
+                  />
+                </div>
+              ) : (
+                <div data-inner-card="true">
+                  <DraggableStudentCard
+                    students={regionStudents}
+                    regionName={region.name}
+                    position={position}
+                    onEdit={onStudentEdit}
+                    onDelete={onStudentDelete}
+                    onDrag={(dx, dy) => handleCardDrag(regionId, dx, dy)}
+                  />
+                </div>
+              )}
             </div>
           )
         })}
@@ -1866,12 +1371,6 @@ export default function InteractiveMap({
           transition: all 200ms ease-out;
         }
         
-        /* 移除默认fill设置，让动态填充颜色生效 */
-        /* .region-path:not([fill]),
-        path[data-region-id]:not([fill]) {
-          fill: transparent;
-        } */
-        
         /* 已有填充颜色的区域hover时保持原色，只改变描边 */
         .region-path[fill]:hover,
         path[data-region-id][fill]:hover {
@@ -1896,9 +1395,6 @@ export default function InteractiveMap({
             stroke-width: 2 !important;
           }
         ` : ''}
-        
-        // 移除CSS样式覆盖，让addRegionFillColors函数直接控制颜色
-        // 颜色现在通过addRegionFillColors函数直接设置到SVG路径上
       `}</style>
     </div>
   )
