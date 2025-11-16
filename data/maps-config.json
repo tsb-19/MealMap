@@ -1,0 +1,1047 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "created_date": "2025-10-27",
+    "description": "中国各省和美国各州元数据配置文件",
+    "coordinate_system": "WGS84",
+    "format": "decimal_degrees"
+  },
+  "countries": {
+    "china": {
+      "name": "中国",
+      "name_en": "China",
+      "code": "CN",
+      "type": "country",
+      "administrative_divisions": [
+        {
+          "id": "CN-110000",
+          "name": "北京市",
+          "name_en": "Beijing",
+          "code": "京",
+          "type": "municipality",
+          "administrative_center": "北京",
+          "coordinates": {
+            "lat": 39.9042,
+            "lng": 116.4074
+          }
+        },
+        {
+          "id": "CN-120000",
+          "name": "天津市",
+          "name_en": "Tianjin",
+          "code": "津",
+          "type": "municipality",
+          "administrative_center": "天津",
+          "coordinates": {
+            "lat": 39.3434,
+            "lng": 117.3616
+          }
+        },
+        {
+          "id": "CN-130000",
+          "name": "河北省",
+          "name_en": "Hebei",
+          "code": "冀",
+          "type": "province",
+          "administrative_center": "石家庄",
+          "coordinates": {
+            "lat": 38.0428,
+            "lng": 114.5149
+          }
+        },
+        {
+          "id": "CN-140000",
+          "name": "山西省",
+          "name_en": "Shanxi",
+          "code": "晋",
+          "type": "province",
+          "administrative_center": "太原",
+          "coordinates": {
+            "lat": 37.8706,
+            "lng": 112.5489
+          }
+        },
+        {
+          "id": "CN-150000",
+          "name": "内蒙古自治区",
+          "name_en": "Inner Mongolia",
+          "code": "内蒙古",
+          "type": "autonomous_region",
+          "administrative_center": "呼和浩特",
+          "coordinates": {
+            "lat": 40.8414,
+            "lng": 111.7519
+          }
+        },
+        {
+          "id": "CN-210000",
+          "name": "辽宁省",
+          "name_en": "Liaoning",
+          "code": "辽",
+          "type": "province",
+          "administrative_center": "沈阳",
+          "coordinates": {
+            "lat": 41.8057,
+            "lng": 123.4315
+          }
+        },
+        {
+          "id": "CN-220000",
+          "name": "吉林省",
+          "name_en": "Jilin",
+          "code": "吉",
+          "type": "province",
+          "administrative_center": "长春",
+          "coordinates": {
+            "lat": 43.8171,
+            "lng": 125.3235
+          }
+        },
+        {
+          "id": "CN-230000",
+          "name": "黑龙江省",
+          "name_en": "Heilongjiang",
+          "code": "黑",
+          "type": "province",
+          "administrative_center": "哈尔滨",
+          "coordinates": {
+            "lat": 45.7732,
+            "lng": 126.6573
+          }
+        },
+        {
+          "id": "CN-310000",
+          "name": "上海市",
+          "name_en": "Shanghai",
+          "code": "沪",
+          "type": "municipality",
+          "administrative_center": "上海",
+          "coordinates": {
+            "lat": 31.2304,
+            "lng": 121.4737
+          }
+        },
+        {
+          "id": "CN-320000",
+          "name": "江苏省",
+          "name_en": "Jiangsu",
+          "code": "苏",
+          "type": "province",
+          "administrative_center": "南京",
+          "coordinates": {
+            "lat": 32.0615,
+            "lng": 118.7637
+          }
+        },
+        {
+          "id": "CN-330000",
+          "name": "浙江省",
+          "name_en": "Zhejiang",
+          "code": "浙",
+          "type": "province",
+          "administrative_center": "杭州",
+          "coordinates": {
+            "lat": 30.2741,
+            "lng": 120.1551
+          }
+        },
+        {
+          "id": "CN-340000",
+          "name": "安徽省",
+          "name_en": "Anhui",
+          "code": "皖",
+          "type": "province",
+          "administrative_center": "合肥",
+          "coordinates": {
+            "lat": 31.8206,
+            "lng": 117.2272
+          }
+        },
+        {
+          "id": "CN-350000",
+          "name": "福建省",
+          "name_en": "Fujian",
+          "code": "闽",
+          "type": "province",
+          "administrative_center": "福州",
+          "coordinates": {
+            "lat": 26.0745,
+            "lng": 119.2965
+          }
+        },
+        {
+          "id": "CN-360000",
+          "name": "江西省",
+          "name_en": "Jiangxi",
+          "code": "赣",
+          "type": "province",
+          "administrative_center": "南昌",
+          "coordinates": {
+            "lat": 28.6820,
+            "lng": 115.8581
+          }
+        },
+        {
+          "id": "CN-370000",
+          "name": "山东省",
+          "name_en": "Shandong",
+          "code": "鲁",
+          "type": "province",
+          "administrative_center": "济南",
+          "coordinates": {
+            "lat": 36.6512,
+            "lng": 117.1201
+          }
+        },
+        {
+          "id": "CN-410000",
+          "name": "河南省",
+          "name_en": "Henan",
+          "code": "豫",
+          "type": "province",
+          "administrative_center": "郑州",
+          "coordinates": {
+            "lat": 34.7466,
+            "lng": 113.6254
+          }
+        },
+        {
+          "id": "CN-420000",
+          "name": "湖北省",
+          "name_en": "Hubei",
+          "code": "鄂",
+          "type": "province",
+          "administrative_center": "武汉",
+          "coordinates": {
+            "lat": 30.5928,
+            "lng": 114.3055
+          }
+        },
+        {
+          "id": "CN-430000",
+          "name": "湖南省",
+          "name_en": "Hunan",
+          "code": "湘",
+          "type": "province",
+          "administrative_center": "长沙",
+          "coordinates": {
+            "lat": 28.2282,
+            "lng": 112.9388
+          }
+        },
+        {
+          "id": "CN-440000",
+          "name": "广东省",
+          "name_en": "Guangdong",
+          "code": "粤",
+          "type": "province",
+          "administrative_center": "广州",
+          "coordinates": {
+            "lat": 23.1291,
+            "lng": 113.2644
+          }
+        },
+        {
+          "id": "CN-450000",
+          "name": "广西壮族自治区",
+          "name_en": "Guangxi",
+          "code": "桂",
+          "type": "autonomous_region",
+          "administrative_center": "南宁",
+          "coordinates": {
+            "lat": 22.8170,
+            "lng": 108.3669
+          }
+        },
+        {
+          "id": "CN-460000",
+          "name": "海南省",
+          "name_en": "Hainan",
+          "code": "琼",
+          "type": "province",
+          "administrative_center": "海口",
+          "coordinates": {
+            "lat": 20.0311,
+            "lng": 110.1999
+          }
+        },
+        {
+          "id": "CN-500000",
+          "name": "重庆市",
+          "name_en": "Chongqing",
+          "code": "渝",
+          "type": "municipality",
+          "administrative_center": "重庆",
+          "coordinates": {
+            "lat": 29.4316,
+            "lng": 106.9123
+          }
+        },
+        {
+          "id": "CN-510000",
+          "name": "四川省",
+          "name_en": "Sichuan",
+          "code": "川",
+          "type": "province",
+          "administrative_center": "成都",
+          "coordinates": {
+            "lat": 30.5728,
+            "lng": 104.0668
+          }
+        },
+        {
+          "id": "CN-520000",
+          "name": "贵州省",
+          "name_en": "Guizhou",
+          "code": "贵",
+          "type": "province",
+          "administrative_center": "贵阳",
+          "coordinates": {
+            "lat": 26.6470,
+            "lng": 106.6302
+          }
+        },
+        {
+          "id": "CN-530000",
+          "name": "云南省",
+          "name_en": "Yunnan",
+          "code": "滇",
+          "type": "province",
+          "administrative_center": "昆明",
+          "coordinates": {
+            "lat": 25.0389,
+            "lng": 102.7183
+          }
+        },
+        {
+          "id": "CN-540000",
+          "name": "西藏自治区",
+          "name_en": "Tibet",
+          "code": "藏",
+          "type": "autonomous_region",
+          "administrative_center": "拉萨",
+          "coordinates": {
+            "lat": 29.6520,
+            "lng": 101.7816
+          }
+        },
+        {
+          "id": "CN-610000",
+          "name": "陕西省",
+          "name_en": "Shaanxi",
+          "code": "陕",
+          "type": "province",
+          "administrative_center": "西安",
+          "coordinates": {
+            "lat": 34.3416,
+            "lng": 108.9398
+          }
+        },
+        {
+          "id": "CN-620000",
+          "name": "甘肃省",
+          "name_en": "Gansu",
+          "code": "甘",
+          "type": "province",
+          "administrative_center": "兰州",
+          "coordinates": {
+            "lat": 36.0611,
+            "lng": 103.8343
+          }
+        },
+        {
+          "id": "CN-630000",
+          "name": "青海省",
+          "name_en": "Qinghai",
+          "code": "青",
+          "type": "province",
+          "administrative_center": "西宁",
+          "coordinates": {
+            "lat": 36.6233,
+            "lng": 101.7816
+          }
+        },
+        {
+          "id": "CN-640000",
+          "name": "宁夏回族自治区",
+          "name_en": "Ningxia",
+          "code": "宁",
+          "type": "autonomous_region",
+          "administrative_center": "银川",
+          "coordinates": {
+            "lat": 38.4681,
+            "lng": 106.2586
+          }
+        },
+        {
+          "id": "CN-650000",
+          "name": "新疆维吾尔自治区",
+          "name_en": "Xinjiang",
+          "code": "新",
+          "type": "autonomous_region",
+          "administrative_center": "乌鲁木齐",
+          "coordinates": {
+            "lat": 43.8256,
+            "lng": 87.6168
+          }
+        },
+        {
+          "id": "CN-710000",
+          "name": "中国台湾省",
+          "name_en": "Taiwan",
+          "code": "台",
+          "type": "province",
+          "administrative_center": "台北",
+          "coordinates": {
+            "lat": 25.0330,
+            "lng": 121.5654
+          }
+        },
+        {
+          "id": "CN-810000",
+          "name": "中国香港特别行政区",
+          "name_en": "Hong Kong",
+          "code": "港",
+          "type": "special_administrative_region",
+          "administrative_center": "中国香港",
+          "coordinates": {
+            "lat": 22.3193,
+            "lng": 114.1694
+          }
+        },
+        {
+          "id": "CN-820000",
+          "name": "中国澳门特别行政区",
+          "name_en": "Macau",
+          "code": "澳",
+          "type": "special_administrative_region",
+          "administrative_center": "中国澳门",
+          "coordinates": {
+            "lat": 22.1987,
+            "lng": 113.5439
+          }
+        }
+      ]
+    },
+    "usa": {
+      "name": "美国",
+      "name_en": "United States",
+      "code": "US",
+      "type": "country",
+      "administrative_divisions": [
+        {
+          "id": "US-AL",
+          "name": "阿拉巴马州",
+          "name_en": "Alabama",
+          "code": "AL",
+          "type": "state",
+          "administrative_center": "蒙哥马利",
+          "coordinates": {
+            "lat": 32.3617,
+            "lng": -86.2792
+          }
+        },
+        {
+          "id": "US-AK",
+          "name": "阿拉斯加州",
+          "name_en": "Alaska",
+          "code": "AK",
+          "type": "state",
+          "administrative_center": "朱诺",
+          "coordinates": {
+            "lat": 58.3016,
+            "lng": -134.4197
+          }
+        },
+        {
+          "id": "US-AZ",
+          "name": "亚利桑那州",
+          "name_en": "Arizona",
+          "code": "AZ",
+          "type": "state",
+          "administrative_center": "凤凰城",
+          "coordinates": {
+            "lat": 33.4484,
+            "lng": -112.0740
+          }
+        },
+        {
+          "id": "US-AR",
+          "name": "阿肯色州",
+          "name_en": "Arkansas",
+          "code": "AR",
+          "type": "state",
+          "administrative_center": "小石城",
+          "coordinates": {
+            "lat": 34.7465,
+            "lng": -92.2896
+          }
+        },
+        {
+          "id": "US-CA",
+          "name": "加利福尼亚州",
+          "name_en": "California",
+          "code": "CA",
+          "type": "state",
+          "administrative_center": "萨克拉门托",
+          "coordinates": {
+            "lat": 38.5816,
+            "lng": -121.4944
+          }
+        },
+        {
+          "id": "US-CO",
+          "name": "科罗拉多州",
+          "name_en": "Colorado",
+          "code": "CO",
+          "type": "state",
+          "administrative_center": "丹佛",
+          "coordinates": {
+            "lat": 39.7392,
+            "lng": -104.9903
+          }
+        },
+        {
+          "id": "US-CT",
+          "name": "康涅狄格州",
+          "name_en": "Connecticut",
+          "code": "CT",
+          "type": "state",
+          "administrative_center": "哈特福德",
+          "coordinates": {
+            "lat": 41.7640,
+            "lng": -72.6820
+          }
+        },
+        {
+          "id": "US-DE",
+          "name": "特拉华州",
+          "name_en": "Delaware",
+          "code": "DE",
+          "type": "state",
+          "administrative_center": "多佛",
+          "coordinates": {
+            "lat": 39.3185,
+            "lng": -75.5071
+          }
+        },
+        {
+          "id": "US-FL",
+          "name": "佛罗里达州",
+          "name_en": "Florida",
+          "code": "FL",
+          "type": "state",
+          "administrative_center": "塔拉哈西",
+          "coordinates": {
+            "lat": 30.4378,
+            "lng": -84.2807
+          }
+        },
+        {
+          "id": "US-GA",
+          "name": "乔治亚州",
+          "name_en": "Georgia",
+          "code": "GA",
+          "type": "state",
+          "administrative_center": "亚特兰大",
+          "coordinates": {
+            "lat": 33.7490,
+            "lng": -84.3880
+          }
+        },
+        {
+          "id": "US-HI",
+          "name": "夏威夷州",
+          "name_en": "Hawaii",
+          "code": "HI",
+          "type": "state",
+          "administrative_center": "檀香山",
+          "coordinates": {
+            "lat": 21.3069,
+            "lng": -157.8583
+          }
+        },
+        {
+          "id": "US-ID",
+          "name": "爱达荷州",
+          "name_en": "Idaho",
+          "code": "ID",
+          "type": "state",
+          "administrative_center": "博伊西",
+          "coordinates": {
+            "lat": 43.6150,
+            "lng": -116.2023
+          }
+        },
+        {
+          "id": "US-IL",
+          "name": "伊利诺伊州",
+          "name_en": "Illinois",
+          "code": "IL",
+          "type": "state",
+          "administrative_center": "斯普林菲尔德",
+          "coordinates": {
+            "lat": 39.7817,
+            "lng": -89.6501
+          }
+        },
+        {
+          "id": "US-IN",
+          "name": "印第安纳州",
+          "name_en": "Indiana",
+          "code": "IN",
+          "type": "state",
+          "administrative_center": "印第安纳波利斯",
+          "coordinates": {
+            "lat": 39.7684,
+            "lng": -86.1581
+          }
+        },
+        {
+          "id": "US-IA",
+          "name": "艾奥瓦州",
+          "name_en": "Iowa",
+          "code": "IA",
+          "type": "state",
+          "administrative_center": "得梅因",
+          "coordinates": {
+            "lat": 41.5868,
+            "lng": -93.6250
+          }
+        },
+        {
+          "id": "US-KS",
+          "name": "堪萨斯州",
+          "name_en": "Kansas",
+          "code": "KS",
+          "type": "state",
+          "administrative_center": "托皮卡",
+          "coordinates": {
+            "lat": 39.0482,
+            "lng": -95.6779
+          }
+        },
+        {
+          "id": "US-KY",
+          "name": "肯塔基州",
+          "name_en": "Kentucky",
+          "code": "KY",
+          "type": "state",
+          "administrative_center": "法兰克福",
+          "coordinates": {
+            "lat": 38.1973,
+            "lng": -84.8631
+          }
+        },
+        {
+          "id": "US-LA",
+          "name": "路易斯安那州",
+          "name_en": "Louisiana",
+          "code": "LA",
+          "type": "state",
+          "administrative_center": "巴吞鲁日",
+          "coordinates": {
+            "lat": 30.4515,
+            "lng": -91.1871
+          }
+        },
+        {
+          "id": "US-ME",
+          "name": "缅因州",
+          "name_en": "Maine",
+          "code": "ME",
+          "type": "state",
+          "administrative_center": "奥古斯塔",
+          "coordinates": {
+            "lat": 44.3106,
+            "lng": -69.3815
+          }
+        },
+        {
+          "id": "US-MD",
+          "name": "马里兰州",
+          "name_en": "Maryland",
+          "code": "MD",
+          "type": "state",
+          "administrative_center": "安纳波利斯",
+          "coordinates": {
+            "lat": 38.9788,
+            "lng": -76.4909
+          }
+        },
+        {
+          "id": "US-MA",
+          "name": "马萨诸塞州",
+          "name_en": "Massachusetts",
+          "code": "MA",
+          "type": "state",
+          "administrative_center": "波士顿",
+          "coordinates": {
+            "lat": 42.3601,
+            "lng": -71.0589
+          }
+        },
+        {
+          "id": "US-MI",
+          "name": "密歇根州",
+          "name_en": "Michigan",
+          "code": "MI",
+          "type": "state",
+          "administrative_center": "兰辛",
+          "coordinates": {
+            "lat": 42.7339,
+            "lng": -84.5467
+          }
+        },
+        {
+          "id": "US-MN",
+          "name": "明尼苏达州",
+          "name_en": "Minnesota",
+          "code": "MN",
+          "type": "state",
+          "administrative_center": "圣保罗",
+          "coordinates": {
+            "lat": 44.9551,
+            "lng": -93.1022
+          }
+        },
+        {
+          "id": "US-MS",
+          "name": "密西西比州",
+          "name_en": "Mississippi",
+          "code": "MS",
+          "type": "state",
+          "administrative_center": "杰克逊",
+          "coordinates": {
+            "lat": 32.3038,
+            "lng": -90.1821
+          }
+        },
+        {
+          "id": "US-MO",
+          "name": "密苏里州",
+          "name_en": "Missouri",
+          "code": "MO",
+          "type": "state",
+          "administrative_center": "杰斐逊城",
+          "coordinates": {
+            "lat": 38.5792,
+            "lng": -92.1735
+          }
+        },
+        {
+          "id": "US-MT",
+          "name": "蒙大拿州",
+          "name_en": "Montana",
+          "code": "MT",
+          "type": "state",
+          "administrative_center": "海伦娜",
+          "coordinates": {
+            "lat": 46.5857,
+            "lng": -112.0184
+          }
+        },
+        {
+          "id": "US-NE",
+          "name": "内布拉斯加州",
+          "name_en": "Nebraska",
+          "code": "NE",
+          "type": "state",
+          "administrative_center": "林肯",
+          "coordinates": {
+            "lat": 40.8136,
+            "lng": -96.7026
+          }
+        },
+        {
+          "id": "US-NV",
+          "name": "内华达州",
+          "name_en": "Nevada",
+          "code": "NV",
+          "type": "state",
+          "administrative_center": "卡森城",
+          "coordinates": {
+            "lat": 39.1638,
+            "lng": -119.7674
+          }
+        },
+        {
+          "id": "US-NH",
+          "name": "新罕布什尔州",
+          "name_en": "New Hampshire",
+          "code": "NH",
+          "type": "state",
+          "administrative_center": "康科德",
+          "coordinates": {
+            "lat": 43.2069,
+            "lng": -71.5379
+          }
+        },
+        {
+          "id": "US-NJ",
+          "name": "新泽西州",
+          "name_en": "New Jersey",
+          "code": "NJ",
+          "type": "state",
+          "administrative_center": "特伦顿",
+          "coordinates": {
+            "lat": 40.3140,
+            "lng": -74.5089
+          }
+        },
+        {
+          "id": "US-NM",
+          "name": "新墨西哥州",
+          "name_en": "New Mexico",
+          "code": "NM",
+          "type": "state",
+          "administrative_center": "圣菲",
+          "coordinates": {
+            "lat": 35.6870,
+            "lng": -105.9378
+          }
+        },
+        {
+          "id": "US-NY",
+          "name": "纽约州",
+          "name_en": "New York",
+          "code": "NY",
+          "type": "state",
+          "administrative_center": "奥尔巴尼",
+          "coordinates": {
+            "lat": 42.6526,
+            "lng": -73.7562
+          }
+        },
+        {
+          "id": "US-NC",
+          "name": "北卡罗来纳州",
+          "name_en": "North Carolina",
+          "code": "NC",
+          "type": "state",
+          "administrative_center": "罗利",
+          "coordinates": {
+            "lat": 35.7796,
+            "lng": -78.6382
+          }
+        },
+        {
+          "id": "US-ND",
+          "name": "北达科他州",
+          "name_en": "North Dakota",
+          "code": "ND",
+          "type": "state",
+          "administrative_center": "俾斯麦",
+          "coordinates": {
+            "lat": 46.8209,
+            "lng": -100.7837
+          }
+        },
+        {
+          "id": "US-OH",
+          "name": "俄亥俄州",
+          "name_en": "Ohio",
+          "code": "OH",
+          "type": "state",
+          "administrative_center": "哥伦布",
+          "coordinates": {
+            "lat": 39.9612,
+            "lng": -82.9988
+          }
+        },
+        {
+          "id": "US-OK",
+          "name": "俄克拉荷马州",
+          "name_en": "Oklahoma",
+          "code": "OK",
+          "type": "state",
+          "administrative_center": "俄克拉荷马城",
+          "coordinates": {
+            "lat": 35.4676,
+            "lng": -97.5164
+          }
+        },
+        {
+          "id": "US-OR",
+          "name": "俄勒冈州",
+          "name_en": "Oregon",
+          "code": "OR",
+          "type": "state",
+          "administrative_center": "塞勒姆",
+          "coordinates": {
+            "lat": 44.9385,
+            "lng": -123.0304
+          }
+        },
+        {
+          "id": "US-PA",
+          "name": "宾夕法尼亚州",
+          "name_en": "Pennsylvania",
+          "code": "PA",
+          "type": "state",
+          "administrative_center": "哈里斯堡",
+          "coordinates": {
+            "lat": 40.2732,
+            "lng": -76.8867
+          }
+        },
+        {
+          "id": "US-RI",
+          "name": "罗得岛州",
+          "name_en": "Rhode Island",
+          "code": "RI",
+          "type": "state",
+          "administrative_center": "普罗维登斯",
+          "coordinates": {
+            "lat": 41.8236,
+            "lng": -71.4221
+          }
+        },
+        {
+          "id": "US-SC",
+          "name": "南卡罗来纳州",
+          "name_en": "South Carolina",
+          "code": "SC",
+          "type": "state",
+          "administrative_center": "哥伦比亚",
+          "coordinates": {
+            "lat": 34.0007,
+            "lng": -81.0348
+          }
+        },
+        {
+          "id": "US-SD",
+          "name": "南达科他州",
+          "name_en": "South Dakota",
+          "code": "SD",
+          "type": "state",
+          "administrative_center": "皮尔",
+          "coordinates": {
+            "lat": 44.3675,
+            "lng": -100.3364
+          }
+        },
+        {
+          "id": "US-TN",
+          "name": "田纳西州",
+          "name_en": "Tennessee",
+          "code": "TN",
+          "type": "state",
+          "administrative_center": "纳什维尔",
+          "coordinates": {
+            "lat": 36.1627,
+            "lng": -86.7816
+          }
+        },
+        {
+          "id": "US-TX",
+          "name": "得克萨斯州",
+          "name_en": "Texas",
+          "code": "TX",
+          "type": "state",
+          "administrative_center": "奥斯汀",
+          "coordinates": {
+            "lat": 30.2672,
+            "lng": -97.7431
+          }
+        },
+        {
+          "id": "US-UT",
+          "name": "犹他州",
+          "name_en": "Utah",
+          "code": "UT",
+          "type": "state",
+          "administrative_center": "盐湖城",
+          "coordinates": {
+            "lat": 40.7608,
+            "lng": -111.8910
+          }
+        },
+        {
+          "id": "US-VT",
+          "name": "佛蒙特州",
+          "name_en": "Vermont",
+          "code": "VT",
+          "type": "state",
+          "administrative_center": "蒙彼利埃",
+          "coordinates": {
+            "lat": 44.2628,
+            "lng": -72.5805
+          }
+        },
+        {
+          "id": "US-VA",
+          "name": "弗吉尼亚州",
+          "name_en": "Virginia",
+          "code": "VA",
+          "type": "state",
+          "administrative_center": "里士满",
+          "coordinates": {
+            "lat": 37.5407,
+            "lng": -77.4360
+          }
+        },
+        {
+          "id": "US-WA",
+          "name": "华盛顿州",
+          "name_en": "Washington",
+          "code": "WA",
+          "type": "state",
+          "administrative_center": "奥林匹亚",
+          "coordinates": {
+            "lat": 47.0424,
+            "lng": -122.8931
+          }
+        },
+        {
+          "id": "US-WV",
+          "name": "西弗吉尼亚州",
+          "name_en": "West Virginia",
+          "code": "WV",
+          "type": "state",
+          "administrative_center": "查尔斯顿",
+          "coordinates": {
+            "lat": 38.3498,
+            "lng": -81.6326
+          }
+        },
+        {
+          "id": "US-WI",
+          "name": "威斯康星州",
+          "name_en": "Wisconsin",
+          "code": "WI",
+          "type": "state",
+          "administrative_center": "麦迪逊",
+          "coordinates": {
+            "lat": 43.0731,
+            "lng": -89.4012
+          }
+        },
+        {
+          "id": "US-WY",
+          "name": "怀俄明州",
+          "name_en": "Wyoming",
+          "code": "WY",
+          "type": "state",
+          "administrative_center": "夏延",
+          "coordinates": {
+            "lat": 41.1400,
+            "lng": -104.8202
+          }
+        },
+        {
+          "id": "US-DC",
+          "name": "哥伦比亚特区",
+          "name_en": "District of Columbia",
+          "code": "DC",
+          "type": "district",
+          "administrative_center": "华盛顿",
+          "coordinates": {
+            "lat": 38.9072,
+            "lng": -77.0369
+          }
+        }
+      ]
+    }
+  }
+}
