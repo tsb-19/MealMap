@@ -243,7 +243,7 @@ meal-map/
 
 ## 📱 浏览器支持
 
-- Chrome (推荐)
+- Chrome
 - Firefox
 - Safari
 - Edge
