@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { MapsConfig, Region } from './lib/types'
 import { LocalStudent, loadStudents, addStudent, updateStudent, deleteStudent } from './lib/storage'
 import Navigation from './components/Navigation'
@@ -156,6 +157,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-surface-base">
+      <Analytics />
       {/* 导航栏 */}
       <Navigation
         selectedCountry={selectedCountry}
