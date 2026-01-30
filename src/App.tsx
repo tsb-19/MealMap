@@ -158,8 +158,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      <Analytics />
       <SpeedInsights />
+      <Analytics />
       {/* 导航栏 */}
       <Navigation
         selectedCountry={selectedCountry}
